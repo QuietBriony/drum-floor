@@ -21,6 +21,9 @@
 - `docs/patches/` : パッチ仕様（モジュール表/配線図）
 - `docs/groove/` : グルーヴ理論/生成ルール
 - `patches/` : VCVパッチ本体（.vcv）
+- `docs/groove-profile-schema.md` : drum-floor の band groove profile スキーマ
+- `docs/input-output-example.md` : profile 入力→ドラム出力の例
+- `profiles/groove-profiles.json` : 初期 style profiles 定義
 
 ## Safety
 - mainブランチは常に「鳴る」状態を維持

@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "policy": {
+    "stores_audio": false,
+    "stores_samples": false,
+    "stores_metadata_only": true,
+    "purpose": "drum feel generation profile, not copying"
+  },
+  "profiles": [
+    {
+      "id": "mixture_shout",
+      "label": "Mixture Shout",
+      "description": "Heavy riff and shout vocal driven style with strong snare focus and section fills.",
+      "input_bias": {
+        "vocal_intensity": "high",
+        "bass_density": "high",
+        "guitar_chop": "high",
+        "groove_push_pull": "forward",
+        "humanize": "medium"
+      },
+      "drum_translation": {
+        "kick": ["lock_to_bass_hits", "emphasize_downbeat_1", "optional_double_kick_at_chorus"],
+        "snare": ["strong_backbeat", "extra_ghosted_ghost_on_4", "fill_pre_refrain"],
+        "hat": ["tight_8th", "occasional_16th_stabs"],
+        "ghost_notes": ["short_and_sparse"],
+        "fill": ["2_or_4_bar_pre_transition", "short_roar_fill"],
+        "crash": ["section_entry", "verse_to_chorus_transition"],
+        "transition": ["lift_on_last_beat", "tempo_locked_ramp"]
+      },
+      "avoid": ["overly_sparse_hat", "flat_velocity"]
+    },
+    {
+      "id": "rock_heavy",
+      "label": "Rock Heavy",
+      "description": "Straight power style with stable backbeat, consistent crash accents, and durable groove.",
+      "input_bias": {
+        "vocal_intensity": "medium",
+        "bass_density": "medium",
+        "guitar_chop": "medium",
+        "groove_push_pull": "neutral",
+        "humanize": "low"
+      },
+      "drum_translation": {
+        "kick": ["steady_four_to_floor", "accent_1_and_3", "reinforce_bridge"] ,
+        "snare": ["classic_2_4_backbeat", "stable_placement", "bridge_punch"],
+        "hat": ["open_on_8th_only", "occasional_16th_fill"],
+        "ghost_notes": ["minimal"] ,
+        "fill": ["bar_end_power_fill", "sparse_double_hits"],
+        "crash": ["downbeat_entry", "highlight_phrase_end"],
+        "transition": ["full_bar_transition_cue", "tempo_consistent"]
+      },
+      "avoid": ["over_complex_syncopation", "unbounded_flams"]
+    },
+    {
+      "id": "nerdy_jazzy_hiphop",
+      "label": "Nerdy Jazzy HipHop",
+      "description": "Laid-back pocket with swung hats, ghost-note texture, and soft kick displacement.",
+      "input_bias": {
+        "vocal_intensity": "low",
+        "bass_density": "low_to_mid",
+        "guitar_chop": "low",
+        "groove_push_pull": "backward",
+        "humanize": "high"
+      },
+      "drum_translation": {
+        "kick": ["soft_pocketed_kick", "avoid_dense_double_kicks", "late_phase_bias"],
+        "snare": ["laid_back_snare", "ghosted_ghosts_between_hits"],
+        "hat": ["swung_hat", "6_to_12_percent_swing", "ghost_hats"],
+        "ghost_notes": ["frequent", "microtimed_between_backbeat"],
+        "fill": ["jazzy_comping_fill", "late_accent_fill"],
+        "crash": ["selective", "sparse_entry"],
+        "transition": ["space_leading_transition", "double_tap_cue"]
+      },
+      "avoid": ["straight_8th_without_swing", "constant_ferocity"]
+    },
+    {
+      "id": "breakbeat_live",
+      "label": "Breakbeat Live",
+      "description": "Live drummer feel with chopped break influence, energetic fills, and velocity variation.",
+      "input_bias": {
+        "vocal_intensity": "medium",
+        "bass_density": "high",
+        "guitar_chop": "medium",
+        "groove_push_pull": "forward",
+        "humanize": "high"
+      },
+      "drum_translation": {
+        "kick": ["break_oriented_pattern", "staggered_hits", "section_based_density"] ,
+        "snare": ["ghost_to_full", "syncopated_hits", "fill_into_fill"],
+        "hat": ["chopped_break_tone", "alternating_open_closed"],
+        "ghost_notes": ["frequent", "per_bar_variants"],
+        "fill": ["extended_live_fill", "syncopated_break_strokes"],
+        "crash": ["phrase_separator", "energy_marking"],
+        "transition": ["crowd_friendly_buildup", "live_end_fill" ]
+      },
+      "avoid": ["uniform_velocity", "static_beat_map"]
+    },
+    {
+      "id": "dubby_half_time",
+      "label": "Dubby Half-Time",
+      "description": "Half-time pressure with sparse hats, deep kick/snare spacing, and low-mid atmosphere.",
+      "input_bias": {
+        "vocal_intensity": "low",
+        "bass_density": "low",
+        "guitar_chop": "low",
+        "groove_push_pull": "backward",
+        "humanize": "medium"
+      },
+      "drum_translation": {
+        "kick": ["deep_kick_spacing", "long_tail_placement", "subtle_eighth_support"],
+        "snare": ["half_time_backbeat", "wide_spacing"],
+        "hat": ["sparse_8th", "longer_gaps", "subtle_open"],
+        "ghost_notes": ["low", "minimal"],
+        "fill": ["short_sub"],
+        "crash": ["selective", "late_transition_hit"],
+        "transition": ["subdued_drop", "space_first_then_hit"]
+      },
+      "avoid": ["busy_hat", "crowded_subdivisions"]
+    }
+  ]
+}

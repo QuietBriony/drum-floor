@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/QuietBriony/drum-floor/main/docs/schema/groove-profiles.schema.json",
+  "title": "Drum Floor Groove Profiles",
+  "description": "Schema for band groove profile definitions used by docs/schema + profiles/groove-profiles.json",
+  "type": "object",
+  "required": ["version", "policy", "profiles"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "policy": {
+      "$ref": "#/$defs/policy"
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/profile"
+      }
+    }
+  },
+  "$defs": {
+    "policy": {
+      "type": "object",
+      "required": [
+        "stores_audio",
+        "stores_samples",
+        "stores_metadata_only",
+        "purpose"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "stores_audio": {
+          "type": "boolean",
+          "const": false
+        },
+        "stores_samples": {
+          "type": "boolean",
+          "const": false
+        },
+        "stores_metadata_only": {
+          "type": "boolean",
+          "const": true
+        },
+        "purpose": {
+          "type": "string",
+          "const": "drum feel generation profile, not copying"
+        }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "required": [
+        "id",
+        "label",
+        "description",
+        "input_bias",
+        "drum_translation",
+        "avoid"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]+$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input_bias": {
+          "$ref": "#/$defs/inputBias"
+        },
+        "drum_translation": {
+          "$ref": "#/$defs/drumTranslation"
+        },
+        "avoid": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      }
+    },
+    "inputBias": {
+      "type": "object",
+      "required": [
+        "vocal_intensity",
+        "bass_density",
+        "guitar_chop",
+        "groove_push_pull",
+        "humanize"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "vocal_intensity": {
+          "type": "string",
+          "enum": ["low", "medium", "high"]
+        },
+        "bass_density": {
+          "type": "string",
+          "enum": ["low", "low_to_mid", "medium", "high"]
+        },
+        "guitar_chop": {
+          "type": "string",
+          "enum": ["low", "medium", "high"]
+        },
+        "groove_push_pull": {
+          "type": "string",
+          "enum": ["backward", "neutral", "forward"]
+        },
+        "humanize": {
+          "type": "string",
+          "enum": ["low", "medium", "high"]
+        }
+      }
+    },
+    "drumTranslation": {
+      "type": "object",
+      "required": [
+        "kick",
+        "snare",
+        "hat",
+        "ghost_notes",
+        "fill",
+        "crash",
+        "transition"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kick": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "snare": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "hat": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "ghost_notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "fill": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "crash": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "transition": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      }
+    }
+  }
+}

@@ -61,3 +61,8 @@
 - [Groove profile schema](./groove-profile-schema.md)
 - [Input/output example](./input-output-example.md)
 - [Band Groove Generator v1 研究計画](./groove/band-groove-research-plan-v1.md)
+- [Groove decision model](./groove/groove-decision-model.md)
+- [Groove grammar v1](./groove/groove-grammar-v1.md)
+- [Fill and transition policy](./groove/fill-and-transition-policy.md)
+- [Evaluation rubric v1](./groove/evaluation-rubric-v1.md)
+- [Future runtime contract](./groove/future-runtime-contract.md)

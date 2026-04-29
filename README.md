@@ -18,7 +18,7 @@
 
 ## Files
 - `index.html` : GitHub Pages 用の profile UI
-- `style.css` / `app.js` : 依存なしの静的 UI
+- `style.css` / `app.js` : 依存なしの日本語静的 UI
 - `docs/ops/` : ライブ運用・事故対応
 - `docs/patches/` : パッチ仕様（モジュール表/配線図）
 - `docs/groove/` : グルーヴ理論/生成ルール
@@ -31,3 +31,4 @@
 - mainブランチは常に「鳴る」状態を維持
 - 1PR = 1目的（小さく改修）
 - GitHub Pages は `main` + `/(root)` を公開元にする
+- Pages UI は profile確認、使い方確認、開発状況把握のための入口として使う

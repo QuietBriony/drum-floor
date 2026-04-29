@@ -1,72 +1,77 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Drum Floor | Band Groove Generator</title>
+    <title>Drum Floor | バンド用グルーブ生成プロファイル</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <header class="topbar">
-      <a class="brand" href="./" aria-label="Drum Floor home">
+      <a class="brand" href="./" aria-label="Drum Floor ホーム">
         <span class="brand-mark" aria-hidden="true"></span>
         <span>
           <strong>Drum Floor</strong>
-          <small>Band Groove Generator</small>
+          <small>バンド用グルーブ生成プロファイル</small>
         </span>
       </a>
-      <nav class="nav-links" aria-label="Research documents">
-        <a href="docs/groove/groove-decision-model.md">Decision</a>
-        <a href="docs/groove/groove-grammar-v1.md">Grammar</a>
-        <a href="docs/groove/fill-and-transition-policy.md">Fills</a>
-        <a href="docs/groove/evaluation-rubric-v1.md">Rubric</a>
-        <a href="docs/groove/future-runtime-contract.md">Runtime</a>
+      <nav class="nav-links" aria-label="研究ドキュメント">
+        <a href="docs/groove/groove-decision-model.md">判断モデル</a>
+        <a href="docs/groove/groove-grammar-v1.md">文法</a>
+        <a href="docs/groove/fill-and-transition-policy.md">フィル</a>
+        <a href="docs/groove/evaluation-rubric-v1.md">評価</a>
+        <a href="docs/groove/future-runtime-contract.md">runtime契約</a>
       </nav>
     </header>
 
     <main class="app-shell">
       <section class="hero">
         <div>
-          <p class="eyebrow">profile driven drum feel</p>
-          <h1>Shape band grooves before runtime exists.</h1>
+          <p class="eyebrow">手入力profileからドラムフィールを設計</p>
+          <h1>バンドのノリを、実装前に見える形へ。</h1>
+          <p class="hero-copy">まだ音を鳴らす実装ではなく、style profile と研究docsを確認するための開発用UIです。</p>
         </div>
-        <div class="policy-strip" aria-label="Policy checks">
-          <span>No audio</span>
-          <span>No samples</span>
-          <span>Metadata only</span>
-          <span>No runtime</span>
+        <div class="policy-strip" aria-label="安全ポリシー">
+          <span>音声なし</span>
+          <span>サンプルなし</span>
+          <span>メタデータのみ</span>
+          <span>runtime未実装</span>
         </div>
       </section>
 
-      <section class="workbench" aria-label="Groove profile workbench">
+      <section class="workbench" aria-label="グルーブプロファイル作業台">
         <aside class="selector-panel">
           <div class="panel-heading">
-            <p class="eyebrow">style profiles</p>
-            <span id="profile-count">loading</span>
+            <p class="eyebrow">style profile</p>
+            <span id="profile-count">読み込み中</span>
           </div>
-          <div class="profile-list" id="profile-list" role="listbox" aria-label="Style profiles"></div>
+          <div class="profile-list" id="profile-list" role="listbox" aria-label="style profile一覧"></div>
         </aside>
 
         <section class="detail-panel">
           <div class="profile-head">
             <div>
               <p class="eyebrow" id="profile-id">profile</p>
-              <h2 id="profile-label">Loading profiles</h2>
-              <p id="profile-description">Reading profiles/groove-profiles.json</p>
+              <h2 id="profile-label">profileを読み込み中</h2>
+              <p id="profile-description">profiles/groove-profiles.json を読んでいます。</p>
             </div>
-            <a class="json-link" href="profiles/groove-profiles.json">JSON</a>
+            <a class="json-link" href="profiles/groove-profiles.json">JSONを見る</a>
           </div>
 
-          <div class="tabbar" role="tablist" aria-label="Profile views">
-            <button class="tab-button is-active" type="button" data-view="profile">Profile</button>
-            <button class="tab-button" type="button" data-view="translation">Drum feel</button>
-            <button class="tab-button" type="button" data-view="policy">Policy</button>
+          <div class="tabbar" role="tablist" aria-label="profile表示切り替え">
+            <button class="tab-button is-active" type="button" data-view="profile">プロフィール</button>
+            <button class="tab-button" type="button" data-view="translation">ドラムフィール</button>
+            <button class="tab-button" type="button" data-view="policy">制御ポリシー</button>
+            <button class="tab-button" type="button" data-view="manual">使い方</button>
+            <button class="tab-button" type="button" data-view="status">開発状況</button>
           </div>
 
           <div class="view-stack">
             <div class="view is-active" id="view-profile"></div>
             <div class="view" id="view-translation"></div>
             <div class="view" id="view-policy"></div>
+            <div class="view" id="view-manual"></div>
+            <div class="view" id="view-status"></div>
           </div>
         </section>
       </section>

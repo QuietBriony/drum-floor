@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "policy": {
     "stores_audio": false,
     "stores_samples": false,
@@ -10,112 +10,705 @@
     {
       "id": "mixture_shout",
       "label": "Mixture Shout",
-      "description": "Heavy riff and shout vocal driven style with strong snare focus and section fills.",
-      "input_bias": {
-        "vocal_intensity": "high",
-        "bass_density": "high",
-        "guitar_chop": "high",
+      "description": "Heavy riff and shout vocal driven style with strong snare focus and controlled section fills.",
+      "section_profile": {
+        "verse": {
+          "density": "medium",
+          "fill_tendency": "low",
+          "ghost_preference": "low",
+          "transition_style": "build"
+        },
+        "chorus": {
+          "density": "high",
+          "fill_tendency": "medium",
+          "ghost_preference": "medium",
+          "transition_style": "lift"
+        },
+        "bridge": {
+          "density": "medium",
+          "fill_tendency": "high",
+          "ghost_preference": "medium",
+          "transition_style": "open"
+        },
+        "end": {
+          "density": "high",
+          "fill_tendency": "low",
+          "ghost_preference": "low",
+          "transition_style": "drop"
+        }
+      },
+      "instrument_profile": {
+        "vocal": {
+          "intensity": "high",
+          "attack": "hard",
+          "syncopation": "high"
+        },
+        "bass": {
+          "intensity": "high",
+          "attack": "hard",
+          "syncopation": "medium"
+        },
+        "guitar": {
+          "intensity": "high",
+          "attack": "hard",
+          "syncopation": "low"
+        }
+      },
+      "feel_profile": {
         "groove_push_pull": "forward",
-        "humanize": "medium"
+        "swing": 6,
+        "humanize": "medium",
+        "density": "high",
+        "articulation": "firm"
       },
       "drum_translation": {
-        "kick": ["lock_to_bass_hits", "emphasize_downbeat_1", "optional_double_kick_at_chorus"],
-        "snare": ["strong_backbeat", "extra_ghosted_ghost_on_4", "fill_pre_refrain"],
-        "hat": ["tight_8th", "occasional_16th_stabs"],
-        "ghost_notes": ["short_and_sparse"],
-        "fill": ["2_or_4_bar_pre_transition", "short_roar_fill"],
-        "crash": ["section_entry", "verse_to_chorus_transition"],
-        "transition": ["lift_on_last_beat", "tempo_locked_ramp"]
+        "structure": {
+          "kick": [
+            "anchor_1_3",
+            "double_floor_on_pre_chorus"
+          ],
+          "snare": [
+            "strong_backbeat",
+            "short_pre_transition_ghost"
+          ],
+          "hat": [
+            "tight_8th",
+            "occasional_16th_stab"
+          ],
+          "ghost_notes": [
+            "sparse_between_beat"
+          ],
+          "fill": [
+            "short_pre_shout_fill",
+            "phrase_end_roll_gate"
+          ],
+          "crash": [
+            "verse_to_chorus_entry",
+            "section_reinforce"
+          ],
+          "transition": [
+            "bar_end_lift",
+            "final_return_1_beat_gap"
+          ]
+        },
+        "expression": {
+          "velocity_curve": "firm_front_mid_tail",
+          "microtiming_deviation": "snare_late_ghosts, kick_forward_8to16th",
+          "humanize_range": "ms[-7,+5]",
+          "density_profile": "high",
+          "swing_profile": "8th 6%"
+        }
       },
-      "avoid": ["overly_sparse_hat", "flat_velocity"]
+      "fill_policy": {
+        "types": [
+          "short",
+          "roll"
+        ],
+        "max_per_8_bars": 2,
+        "section_priority": {
+          "verse": 3,
+          "chorus": 6,
+          "bridge": 8,
+          "end": 2
+        },
+        "transition_cue_priority": "high"
+      },
+      "ghost_notes_policy": {
+        "unit": "16th",
+        "section_density": {
+          "verse": "low",
+          "chorus": "low_to_mid",
+          "bridge": "medium",
+          "end": "low"
+        }
+      },
+      "section_transition_rules": [
+        {
+          "from": "chorus",
+          "to": "bridge",
+          "adjustments": [
+            "shorten_fill",
+            "reduce_crash_count",
+            "increase_risk_timing_slack"
+          ],
+          "priority": "high"
+        },
+        {
+          "from": "bridge",
+          "to": "chorus",
+          "adjustments": [
+            "add_micro_gap",
+            "kick_return_guard"
+          ],
+          "priority": "medium"
+        }
+      ],
+      "avoid": [
+        "overly_sparse_hat",
+        "flat_velocity_ramp"
+      ]
     },
     {
       "id": "rock_heavy",
       "label": "Rock Heavy",
-      "description": "Straight power style with stable backbeat, consistent crash accents, and durable groove.",
-      "input_bias": {
-        "vocal_intensity": "medium",
-        "bass_density": "medium",
-        "guitar_chop": "medium",
+      "description": "Straight power with stable backbeat, clear crash accents, and durable groove anchoring.",
+      "section_profile": {
+        "verse": {
+          "density": "high",
+          "fill_tendency": "low",
+          "ghost_preference": "low",
+          "transition_style": "tight"
+        },
+        "chorus": {
+          "density": "high",
+          "fill_tendency": "low",
+          "ghost_preference": "low",
+          "transition_style": "lift"
+        },
+        "bridge": {
+          "density": "medium",
+          "fill_tendency": "medium",
+          "ghost_preference": "low",
+          "transition_style": "build"
+        },
+        "end": {
+          "density": "high",
+          "fill_tendency": "low",
+          "ghost_preference": "low",
+          "transition_style": "drop"
+        }
+      },
+      "instrument_profile": {
+        "vocal": {
+          "intensity": "medium",
+          "attack": "normal",
+          "syncopation": "low"
+        },
+        "bass": {
+          "intensity": "high",
+          "attack": "hard",
+          "syncopation": "medium"
+        },
+        "guitar": {
+          "intensity": "high",
+          "attack": "hard",
+          "syncopation": "medium"
+        }
+      },
+      "feel_profile": {
         "groove_push_pull": "neutral",
-        "humanize": "low"
+        "swing": 3,
+        "humanize": "low",
+        "density": "high",
+        "articulation": "firm"
       },
       "drum_translation": {
-        "kick": ["steady_four_to_floor", "accent_1_and_3", "reinforce_bridge"] ,
-        "snare": ["classic_2_4_backbeat", "stable_placement", "bridge_punch"],
-        "hat": ["open_on_8th_only", "occasional_16th_fill"],
-        "ghost_notes": ["minimal"] ,
-        "fill": ["bar_end_power_fill", "sparse_double_hits"],
-        "crash": ["downbeat_entry", "highlight_phrase_end"],
-        "transition": ["full_bar_transition_cue", "tempo_consistent"]
+        "structure": {
+          "kick": [
+            "steady_four_to_floor",
+            "reinforce_1_and_3"
+          ],
+          "snare": [
+            "classic_2_4_backbeat",
+            "stable_placement"
+          ],
+          "hat": [
+            "open_8th_only",
+            "occasional_16th_fill"
+          ],
+          "ghost_notes": [
+            "minimal"
+          ],
+          "fill": [
+            "bar_end_power_fill",
+            "sparse_double_hits"
+          ],
+          "crash": [
+            "downbeat_entry",
+            "phrase_end_highlight"
+          ],
+          "transition": [
+            "full_bar_transition_cue",
+            "tempo_consistent"
+          ]
+        },
+        "expression": {
+          "velocity_curve": "heavy_backbone_with_soft_tail",
+          "microtiming_deviation": "tight_grid_with_small_noise",
+          "humanize_range": "ms[-3,+3]",
+          "density_profile": "high",
+          "swing_profile": "8th 3%"
+        }
       },
-      "avoid": ["over_complex_syncopation", "unbounded_flams"]
+      "fill_policy": {
+        "types": [
+          "short",
+          "long"
+        ],
+        "max_per_8_bars": 1,
+        "section_priority": {
+          "verse": 2,
+          "chorus": 3,
+          "bridge": 5,
+          "end": 2
+        },
+        "transition_cue_priority": "medium"
+      },
+      "ghost_notes_policy": {
+        "unit": "16th",
+        "section_density": {
+          "verse": "low",
+          "chorus": "low",
+          "bridge": "low_to_mid",
+          "end": "low"
+        }
+      },
+      "section_transition_rules": [
+        {
+          "from": "chorus",
+          "to": "bridge",
+          "adjustments": [
+            "flatten_density_drop",
+            "maintain_backbeat_anchor"
+          ],
+          "priority": "medium"
+        },
+        {
+          "from": "bridge",
+          "to": "chorus",
+          "adjustments": [
+            "kick_pressure_restore",
+            "shorten_space_before_reentry"
+          ],
+          "priority": "high"
+        }
+      ],
+      "avoid": [
+        "over_complex_syncopation",
+        "unbounded_flams"
+      ]
     },
     {
       "id": "nerdy_jazzy_hiphop",
       "label": "Nerdy Jazzy HipHop",
-      "description": "Laid-back pocket with swung hats, ghost-note texture, and soft kick displacement.",
-      "input_bias": {
-        "vocal_intensity": "low",
-        "bass_density": "low_to_mid",
-        "guitar_chop": "low",
+      "description": "Laid-back pocket with swung hats, ghost note texture, and soft kick displacement.",
+      "section_profile": {
+        "verse": {
+          "density": "low",
+          "fill_tendency": "low",
+          "ghost_preference": "high",
+          "transition_style": "build"
+        },
+        "chorus": {
+          "density": "low_to_mid",
+          "fill_tendency": "medium",
+          "ghost_preference": "high",
+          "transition_style": "lift"
+        },
+        "bridge": {
+          "density": "low",
+          "fill_tendency": "high",
+          "ghost_preference": "high",
+          "transition_style": "open"
+        },
+        "end": {
+          "density": "low",
+          "fill_tendency": "low",
+          "ghost_preference": "medium",
+          "transition_style": "decay"
+        }
+      },
+      "instrument_profile": {
+        "vocal": {
+          "intensity": "low",
+          "attack": "soft",
+          "syncopation": "medium"
+        },
+        "bass": {
+          "intensity": "medium",
+          "attack": "normal",
+          "syncopation": "medium"
+        },
+        "guitar": {
+          "intensity": "low",
+          "attack": "soft",
+          "syncopation": "medium"
+        }
+      },
+      "feel_profile": {
         "groove_push_pull": "backward",
-        "humanize": "high"
+        "swing": 9,
+        "humanize": "high",
+        "density": "low_to_mid",
+        "articulation": "soft"
       },
       "drum_translation": {
-        "kick": ["soft_pocketed_kick", "avoid_dense_double_kicks", "late_phase_bias"],
-        "snare": ["laid_back_snare", "ghosted_ghosts_between_hits"],
-        "hat": ["swung_hat", "6_to_12_percent_swing", "ghost_hats"],
-        "ghost_notes": ["frequent", "microtimed_between_backbeat"],
-        "fill": ["jazzy_comping_fill", "late_accent_fill"],
-        "crash": ["selective", "sparse_entry"],
-        "transition": ["space_leading_transition", "double_tap_cue"]
+        "structure": {
+          "kick": [
+            "soft_pocketed_kick",
+            "avoid_dense_double_hits"
+          ],
+          "snare": [
+            "laid_back_snare",
+            "ghosted_between_hits"
+          ],
+          "hat": [
+            "swung_hat",
+            "micro_shifted_ghost_hat"
+          ],
+          "ghost_notes": [
+            "frequent_between_beat",
+            "per_bar_variants"
+          ],
+          "fill": [
+            "jazzy_comping_fill",
+            "late_accent_fill"
+          ],
+          "crash": [
+            "selective_entry",
+            "sparse_ride_like_hit"
+          ],
+          "transition": [
+            "space_leading",
+            "double_tap_transition_cue"
+          ]
+        },
+        "expression": {
+          "velocity_curve": "soft_front_then_micro_spikes",
+          "microtiming_deviation": "laid_back_main_with_hocketed_ghost_offsets",
+          "humanize_range": "ms[-10,+8]",
+          "density_profile": "low_to_mid",
+          "swing_profile": "8th 9%"
+        }
       },
-      "avoid": ["straight_8th_without_swing", "constant_ferocity"]
+      "fill_policy": {
+        "types": [
+          "short",
+          "long"
+        ],
+        "max_per_8_bars": 1,
+        "section_priority": {
+          "verse": 2,
+          "chorus": 4,
+          "bridge": 6,
+          "end": 2
+        },
+        "transition_cue_priority": "low"
+      },
+      "ghost_notes_policy": {
+        "unit": "16th",
+        "section_density": {
+          "verse": "high",
+          "chorus": "high",
+          "bridge": "high",
+          "end": "medium"
+        }
+      },
+      "section_transition_rules": [
+        {
+          "from": "chorus",
+          "to": "bridge",
+          "adjustments": [
+            "extend_ghost_window",
+            "lower_crash_count"
+          ],
+          "priority": "medium"
+        },
+        {
+          "from": "bridge",
+          "to": "chorus",
+          "adjustments": [
+            "reintroduce_kick_anchor",
+            "shorten_fill_window"
+          ],
+          "priority": "medium"
+        }
+      ],
+      "avoid": [
+        "straight_8th_without_swing",
+        "constant_ferocity"
+      ]
     },
     {
       "id": "breakbeat_live",
       "label": "Breakbeat Live",
-      "description": "Live drummer feel with chopped break influence, energetic fills, and velocity variation.",
-      "input_bias": {
-        "vocal_intensity": "medium",
-        "bass_density": "high",
-        "guitar_chop": "medium",
+      "description": "Live drummer feel with chopped break influence, energetic fills, and wide velocity variation.",
+      "section_profile": {
+        "verse": {
+          "density": "high",
+          "fill_tendency": "medium",
+          "ghost_preference": "medium",
+          "transition_style": "open"
+        },
+        "chorus": {
+          "density": "high",
+          "fill_tendency": "high",
+          "ghost_preference": "medium",
+          "transition_style": "lift"
+        },
+        "bridge": {
+          "density": "high",
+          "fill_tendency": "high",
+          "ghost_preference": "high",
+          "transition_style": "build"
+        },
+        "end": {
+          "density": "medium",
+          "fill_tendency": "medium",
+          "ghost_preference": "low",
+          "transition_style": "decay"
+        }
+      },
+      "instrument_profile": {
+        "vocal": {
+          "intensity": "medium",
+          "attack": "normal",
+          "syncopation": "medium"
+        },
+        "bass": {
+          "intensity": "high",
+          "attack": "hard",
+          "syncopation": "high"
+        },
+        "guitar": {
+          "intensity": "medium",
+          "attack": "normal",
+          "syncopation": "high"
+        }
+      },
+      "feel_profile": {
         "groove_push_pull": "forward",
-        "humanize": "high"
+        "swing": 7,
+        "humanize": "high",
+        "density": "high",
+        "articulation": "firm"
       },
       "drum_translation": {
-        "kick": ["break_oriented_pattern", "staggered_hits", "section_based_density"] ,
-        "snare": ["ghost_to_full", "syncopated_hits", "fill_into_fill"],
-        "hat": ["chopped_break_tone", "alternating_open_closed"],
-        "ghost_notes": ["frequent", "per_bar_variants"],
-        "fill": ["extended_live_fill", "syncopated_break_strokes"],
-        "crash": ["phrase_separator", "energy_marking"],
-        "transition": ["crowd_friendly_buildup", "live_end_fill" ]
+        "structure": {
+          "kick": [
+            "break_oriented_pattern",
+            "staggered_hits"
+          ],
+          "snare": [
+            "ghost_to_full",
+            "syncopated_hits"
+          ],
+          "hat": [
+            "chopped_break_tone",
+            "alternating_open_closed"
+          ],
+          "ghost_notes": [
+            "frequent",
+            "per_bar_variants"
+          ],
+          "fill": [
+            "extended_live_fill",
+            "syncopated_break_strokes"
+          ],
+          "crash": [
+            "phrase_separator",
+            "energy_marking"
+          ],
+          "transition": [
+            "crowd_friendly_buildup",
+            "live_end_fill"
+          ]
+        },
+        "expression": {
+          "velocity_curve": "wide_pocket_with_higher_accent_density",
+          "microtiming_deviation": "barwise_phase_drift_with_live_reset",
+          "humanize_range": "ms[-9,+9]",
+          "density_profile": "high",
+          "swing_profile": "8th 7%"
+        }
       },
-      "avoid": ["uniform_velocity", "static_beat_map"]
+      "fill_policy": {
+        "types": [
+          "short",
+          "long",
+          "roll"
+        ],
+        "max_per_8_bars": 3,
+        "section_priority": {
+          "verse": 4,
+          "chorus": 7,
+          "bridge": 9,
+          "end": 5
+        },
+        "transition_cue_priority": "high"
+      },
+      "ghost_notes_policy": {
+        "unit": "16th",
+        "section_density": {
+          "verse": "medium",
+          "chorus": "medium",
+          "bridge": "high",
+          "end": "low"
+        }
+      },
+      "section_transition_rules": [
+        {
+          "from": "chorus",
+          "to": "bridge",
+          "adjustments": [
+            "allow_fill_density_spike",
+            "stabilize_crash_on_downbeat"
+          ],
+          "priority": "medium"
+        },
+        {
+          "from": "bridge",
+          "to": "end",
+          "adjustments": [
+            "reduce_live_rush",
+            "shift_to_decision_tail"
+          ],
+          "priority": "low"
+        }
+      ],
+      "avoid": [
+        "uniform_velocity",
+        "static_beat_map"
+      ]
     },
     {
       "id": "dubby_half_time",
       "label": "Dubby Half-Time",
       "description": "Half-time pressure with sparse hats, deep kick/snare spacing, and low-mid atmosphere.",
-      "input_bias": {
-        "vocal_intensity": "low",
-        "bass_density": "low",
-        "guitar_chop": "low",
+      "section_profile": {
+        "verse": {
+          "density": "low",
+          "fill_tendency": "low",
+          "ghost_preference": "low",
+          "transition_style": "decay"
+        },
+        "chorus": {
+          "density": "low_to_mid",
+          "fill_tendency": "medium",
+          "ghost_preference": "medium",
+          "transition_style": "lift"
+        },
+        "bridge": {
+          "density": "low",
+          "fill_tendency": "high",
+          "ghost_preference": "low",
+          "transition_style": "open"
+        },
+        "end": {
+          "density": "low",
+          "fill_tendency": "low",
+          "ghost_preference": "low",
+          "transition_style": "drop"
+        }
+      },
+      "instrument_profile": {
+        "vocal": {
+          "intensity": "low",
+          "attack": "soft",
+          "syncopation": "low"
+        },
+        "bass": {
+          "intensity": "low",
+          "attack": "hard",
+          "syncopation": "low"
+        },
+        "guitar": {
+          "intensity": "low",
+          "attack": "normal",
+          "syncopation": "low"
+        }
+      },
+      "feel_profile": {
         "groove_push_pull": "backward",
-        "humanize": "medium"
+        "swing": 5,
+        "humanize": "medium",
+        "density": "low_to_mid",
+        "articulation": "normal"
       },
       "drum_translation": {
-        "kick": ["deep_kick_spacing", "long_tail_placement", "subtle_eighth_support"],
-        "snare": ["half_time_backbeat", "wide_spacing"],
-        "hat": ["sparse_8th", "longer_gaps", "subtle_open"],
-        "ghost_notes": ["low", "minimal"],
-        "fill": ["short_sub"],
-        "crash": ["selective", "late_transition_hit"],
-        "transition": ["subdued_drop", "space_first_then_hit"]
+        "structure": {
+          "kick": [
+            "deep_kick_spacing",
+            "long_tail_support"
+          ],
+          "snare": [
+            "half_time_backbeat",
+            "wide_spacing"
+          ],
+          "hat": [
+            "sparse_8th",
+            "long_gaps"
+          ],
+          "ghost_notes": [
+            "minimal"
+          ],
+          "fill": [
+            "short_sub_fill",
+            "tight_end_fill"
+          ],
+          "crash": [
+            "selective_entry",
+            "late_transition_hit"
+          ],
+          "transition": [
+            "subdued_drop",
+            "space_first_then_hit"
+          ]
+        },
+        "expression": {
+          "velocity_curve": "low_mid_with_air",
+          "microtiming_deviation": "lagging_snare_and_kick_tail",
+          "humanize_range": "ms[-5,+5]",
+          "density_profile": "low_to_mid",
+          "swing_profile": "8th 5%"
+        }
       },
-      "avoid": ["busy_hat", "crowded_subdivisions"]
+      "fill_policy": {
+        "types": [
+          "short"
+        ],
+        "max_per_8_bars": 1,
+        "section_priority": {
+          "verse": 2,
+          "chorus": 4,
+          "bridge": 6,
+          "end": 3
+        },
+        "transition_cue_priority": "medium"
+      },
+      "ghost_notes_policy": {
+        "unit": "16th",
+        "section_density": {
+          "verse": "low",
+          "chorus": "low_to_mid",
+          "bridge": "low",
+          "end": "low"
+        }
+      },
+      "section_transition_rules": [
+        {
+          "from": "chorus",
+          "to": "bridge",
+          "adjustments": [
+            "subdue_hihat_density",
+            "preserve_half_time_anchor"
+          ],
+          "priority": "medium"
+        },
+        {
+          "from": "bridge",
+          "to": "end",
+          "adjustments": [
+            "collapse_to_sub_bass_space",
+            "delay_last_crash"
+          ],
+          "priority": "high"
+        }
+      ],
+      "avoid": [
+        "busy_hat",
+        "crowded_subdivisions"
+      ]
     }
   ]
 }

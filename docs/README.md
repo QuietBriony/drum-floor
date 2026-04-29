@@ -55,3 +55,9 @@
 - DAW 連携（セクション情報やグリッド解釈の共有）
 - 生成結果を外部環境へ安全に渡すプロファイル出力仕様
 - 既存 `docs/schema` と連携しやすい中間表現への標準化
+
+## Docs index
+
+- [Groove profile schema](./groove-profile-schema.md)
+- [Input/output example](./input-output-example.md)
+- [Band Groove Generator v1 研究計画](./groove/band-groove-research-plan-v1.md)

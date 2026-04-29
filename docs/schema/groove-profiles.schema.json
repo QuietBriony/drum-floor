@@ -2,9 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/QuietBriony/drum-floor/main/docs/schema/groove-profiles.schema.json",
   "title": "Drum Floor Groove Profiles",
-  "description": "Schema for band groove profile definitions used by docs/schema + profiles/groove-profiles.json",
+  "description": "Schema for band groove profile definitions used by drum-floor docs and profiles/groove-profiles.json",
   "type": "object",
-  "required": ["version", "policy", "profiles"],
+  "required": [
+    "version",
+    "policy",
+    "profiles"
+  ],
   "additionalProperties": false,
   "properties": {
     "version": {
@@ -57,8 +61,13 @@
         "id",
         "label",
         "description",
-        "input_bias",
+        "section_profile",
+        "instrument_profile",
+        "feel_profile",
         "drum_translation",
+        "fill_policy",
+        "ghost_notes_policy",
+        "section_transition_rules",
         "avoid"
       ],
       "additionalProperties": false,
@@ -75,11 +84,30 @@
           "type": "string",
           "minLength": 1
         },
-        "input_bias": {
-          "$ref": "#/$defs/inputBias"
+        "section_profile": {
+          "$ref": "#/$defs/sectionProfile"
+        },
+        "instrument_profile": {
+          "$ref": "#/$defs/instrumentProfile"
+        },
+        "feel_profile": {
+          "$ref": "#/$defs/feelProfile"
         },
         "drum_translation": {
           "$ref": "#/$defs/drumTranslation"
+        },
+        "fill_policy": {
+          "$ref": "#/$defs/fillPolicy"
+        },
+        "ghost_notes_policy": {
+          "$ref": "#/$defs/ghostNotesPolicy"
+        },
+        "section_transition_rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/sectionTransitionRule"
+          }
         },
         "avoid": {
           "type": "array",
@@ -90,100 +118,477 @@
         }
       }
     },
-    "inputBias": {
+    "sectionProfile": {
       "type": "object",
       "required": [
-        "vocal_intensity",
-        "bass_density",
-        "guitar_chop",
-        "groove_push_pull",
-        "humanize"
+        "verse",
+        "chorus",
+        "bridge",
+        "end"
       ],
       "additionalProperties": false,
       "properties": {
-        "vocal_intensity": {
-          "type": "string",
-          "enum": ["low", "medium", "high"]
+        "verse": {
+          "$ref": "#/$defs/sectionSettings"
         },
-        "bass_density": {
-          "type": "string",
-          "enum": ["low", "low_to_mid", "medium", "high"]
+        "chorus": {
+          "$ref": "#/$defs/sectionSettings"
         },
-        "guitar_chop": {
-          "type": "string",
-          "enum": ["low", "medium", "high"]
+        "bridge": {
+          "$ref": "#/$defs/sectionSettings"
         },
+        "end": {
+          "$ref": "#/$defs/sectionSettings"
+        }
+      }
+    },
+    "sectionSettings": {
+      "type": "object",
+      "required": [
+        "density",
+        "fill_tendency",
+        "ghost_preference",
+        "transition_style"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "density": {
+          "type": "string",
+          "enum": [
+            "low",
+            "low_to_mid",
+            "medium",
+            "high",
+            "high_to_mid"
+          ]
+        },
+        "fill_tendency": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "ghost_preference": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "transition_style": {
+          "type": "string",
+          "enum": [
+            "build",
+            "lift",
+            "open",
+            "drop",
+            "tight",
+            "decay"
+          ]
+        }
+      }
+    },
+    "instrumentProfile": {
+      "type": "object",
+      "required": [
+        "vocal",
+        "bass",
+        "guitar"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "vocal": {
+          "$ref": "#/$defs/instrumentProfileCell"
+        },
+        "bass": {
+          "$ref": "#/$defs/instrumentProfileCell"
+        },
+        "guitar": {
+          "$ref": "#/$defs/instrumentProfileCell"
+        }
+      }
+    },
+    "instrumentProfileCell": {
+      "type": "object",
+      "required": [
+        "intensity",
+        "attack",
+        "syncopation"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "intensity": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "attack": {
+          "type": "string",
+          "enum": [
+            "soft",
+            "normal",
+            "hard"
+          ]
+        },
+        "syncopation": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        }
+      }
+    },
+    "feelProfile": {
+      "type": "object",
+      "required": [
+        "groove_push_pull",
+        "swing",
+        "humanize",
+        "density",
+        "articulation"
+      ],
+      "additionalProperties": false,
+      "properties": {
         "groove_push_pull": {
           "type": "string",
-          "enum": ["backward", "neutral", "forward"]
+          "enum": [
+            "backward",
+            "neutral",
+            "forward"
+          ]
+        },
+        "swing": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30
         },
         "humanize": {
           "type": "string",
-          "enum": ["low", "medium", "high"]
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "density": {
+          "type": "string",
+          "enum": [
+            "low",
+            "low_to_mid",
+            "medium",
+            "high",
+            "high_to_mid"
+          ]
+        },
+        "articulation": {
+          "type": "string",
+          "enum": [
+            "soft",
+            "normal",
+            "firm"
+          ]
         }
       }
     },
     "drumTranslation": {
       "type": "object",
       "required": [
-        "kick",
-        "snare",
-        "hat",
-        "ghost_notes",
-        "fill",
-        "crash",
-        "transition"
+        "structure",
+        "expression"
       ],
       "additionalProperties": false,
       "properties": {
-        "kick": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "minItems": 1
+        "structure": {
+          "type": "object",
+          "required": [
+            "kick",
+            "snare",
+            "hat",
+            "ghost_notes",
+            "fill",
+            "crash",
+            "transition"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "kick": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            },
+            "snare": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            },
+            "hat": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            },
+            "ghost_notes": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            },
+            "fill": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            },
+            "crash": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            },
+            "transition": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            }
+          }
         },
-        "snare": {
+        "expression": {
+          "type": "object",
+          "required": [
+            "velocity_curve",
+            "microtiming_deviation",
+            "humanize_range",
+            "density_profile",
+            "swing_profile"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "velocity_curve": {
+              "type": "string",
+              "minLength": 1
+            },
+            "microtiming_deviation": {
+              "type": "string",
+              "minLength": 1
+            },
+            "humanize_range": {
+              "type": "string",
+              "minLength": 1
+            },
+            "density_profile": {
+              "type": "string",
+              "enum": [
+                "low",
+                "low_to_mid",
+                "medium",
+                "high",
+                "high_to_mid"
+              ]
+            },
+            "swing_profile": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "fillPolicy": {
+      "type": "object",
+      "required": [
+        "types",
+        "max_per_8_bars",
+        "section_priority",
+        "transition_cue_priority"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "types": {
           "type": "array",
+          "minItems": 1,
           "items": {
-            "type": "string"
-          },
-          "minItems": 1
+            "type": "string",
+            "enum": [
+              "short",
+              "long",
+              "roll"
+            ]
+          }
         },
-        "hat": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "minItems": 1
+        "max_per_8_bars": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
         },
-        "ghost_notes": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "minItems": 1
+        "section_priority": {
+          "type": "object",
+          "required": [
+            "verse",
+            "chorus",
+            "bridge",
+            "end"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "verse": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "chorus": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "bridge": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "end": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            }
+          }
         },
-        "fill": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "minItems": 1
+        "transition_cue_priority": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        }
+      }
+    },
+    "ghostNotesPolicy": {
+      "type": "object",
+      "required": [
+        "unit",
+        "section_density"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "unit": {
+          "type": "string",
+          "enum": [
+            "8th",
+            "16th",
+            "32nd"
+          ]
         },
-        "crash": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "minItems": 1
+        "section_density": {
+          "type": "object",
+          "required": [
+            "verse",
+            "chorus",
+            "bridge",
+            "end"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "verse": {
+              "type": "string",
+              "enum": [
+                "low",
+                "low_to_mid",
+                "medium",
+                "high"
+              ]
+            },
+            "chorus": {
+              "type": "string",
+              "enum": [
+                "low",
+                "low_to_mid",
+                "medium",
+                "high"
+              ]
+            },
+            "bridge": {
+              "type": "string",
+              "enum": [
+                "low",
+                "low_to_mid",
+                "medium",
+                "high"
+              ]
+            },
+            "end": {
+              "type": "string",
+              "enum": [
+                "low",
+                "low_to_mid",
+                "medium",
+                "high"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "sectionTransitionRule": {
+      "type": "object",
+      "required": [
+        "from",
+        "to",
+        "adjustments",
+        "priority"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "from": {
+          "type": "string",
+          "enum": [
+            "verse",
+            "chorus",
+            "bridge",
+            "end"
+          ]
         },
-        "transition": {
+        "to": {
+          "type": "string",
+          "enum": [
+            "verse",
+            "chorus",
+            "bridge",
+            "end"
+          ]
+        },
+        "adjustments": {
           "type": "array",
+          "minItems": 1,
           "items": {
-            "type": "string"
-          },
-          "minItems": 1
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "priority": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
         }
       }
     }

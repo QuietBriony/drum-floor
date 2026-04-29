@@ -17,6 +17,8 @@
 - v0.3: Live同期/録音テンプレ + ステージ運用
 
 ## Files
+- `index.html` : GitHub Pages 用の profile UI
+- `style.css` / `app.js` : 依存なしの静的 UI
 - `docs/ops/` : ライブ運用・事故対応
 - `docs/patches/` : パッチ仕様（モジュール表/配線図）
 - `docs/groove/` : グルーヴ理論/生成ルール
@@ -28,3 +30,4 @@
 ## Safety
 - mainブランチは常に「鳴る」状態を維持
 - 1PR = 1目的（小さく改修）
+- GitHub Pages は `main` + `/(root)` を公開元にする

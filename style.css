@@ -431,6 +431,65 @@ code {
   padding-left: 1.4rem;
 }
 
+.preview-controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.preview-button {
+  background: var(--coal);
+  border: 1px solid var(--coal);
+  color: var(--paper-strong);
+  cursor: pointer;
+  font-family: "Trebuchet MS", "Yu Gothic", sans-serif;
+  font-weight: 700;
+  padding: 10px 14px;
+}
+
+.preview-button.secondary {
+  background: transparent;
+  color: var(--coal);
+}
+
+.preview-state {
+  color: var(--muted);
+  font-family: "Trebuchet MS", "Yu Gothic", sans-serif;
+  font-size: 0.84rem;
+}
+
+.step-grid {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(16, minmax(0, 1fr));
+}
+
+.step-cell {
+  background: rgba(36, 37, 33, 0.06);
+  border: 1px solid rgba(36, 37, 33, 0.12);
+  display: grid;
+  min-height: 58px;
+  padding: 7px 5px;
+  place-items: center;
+}
+
+.step-cell span {
+  color: var(--muted);
+  font-family: "Trebuchet MS", "Yu Gothic", sans-serif;
+  font-size: 0.7rem;
+}
+
+.step-cell strong {
+  color: var(--moss);
+  font-size: 0.88rem;
+}
+
+.step-cell.has-hit {
+  background: rgba(169, 72, 50, 0.12);
+  border-color: rgba(169, 72, 50, 0.28);
+}
+
 @media (max-width: 920px) {
   .topbar,
   .hero,
@@ -443,7 +502,8 @@ code {
   .workbench,
   .grid,
   .inner-grid,
-  .section-grid {
+  .section-grid,
+  .step-grid {
     grid-template-columns: 1fr;
   }
 

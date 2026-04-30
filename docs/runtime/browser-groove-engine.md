@@ -18,6 +18,8 @@ The browser engine is the development and audition surface, not the final stage 
 - keep output short and loop-safe
 - add a clear start/stop control in Pages UI
 
+Status: initial Pages UI preview implemented with Web Audio synthesis only.
+
 ## Phase 2: Manual groove generator
 
 - translate `drum_translation.structure` into bar-level events

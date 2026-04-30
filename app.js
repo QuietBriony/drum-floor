@@ -4,7 +4,14 @@ const state = {
   version: null,
   activeId: null,
   activeView: "profile",
-  loadStatus: "読み込み中"
+  loadStatus: "読み込み中",
+  preview: {
+    audioContext: null,
+    master: null,
+    intervalId: null,
+    isPlaying: false,
+    bpm: 120
+  }
 };
 
 const refs = {
@@ -17,6 +24,7 @@ const refs = {
   views: {
     profile: document.querySelector("#view-profile"),
     translation: document.querySelector("#view-translation"),
+    preview: document.querySelector("#view-preview"),
     policy: document.querySelector("#view-policy"),
     manual: document.querySelector("#view-manual"),
     status: document.querySelector("#view-status"),
@@ -40,8 +48,8 @@ const docs = [
 const roadmap = [
   {
     title: "Browser音生成",
-    status: "planned",
-    detail: "Web Audioの合成音だけでkick/snare/hatのpreviewを鳴らす。samples/audio filesは使わない。"
+    status: "initial preview",
+    detail: "Web Audioの合成音だけでkick/snare/hat/ghost/fillのpreviewを鳴らす。samples/audio filesは使わない。"
   },
   {
     title: "Manual groove generator",
@@ -120,6 +128,14 @@ const labels = {
   purpose: "目的"
 };
 
+const densityMap = {
+  low: 0,
+  low_to_mid: 1,
+  medium: 2,
+  high_to_mid: 3,
+  high: 4
+};
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -155,6 +171,175 @@ function card(title, content, wide = false) {
 
 function activeProfile() {
   return state.profiles.find((profile) => profile.id === state.activeId) || state.profiles[0];
+}
+
+function stopPreview() {
+  if (state.preview.intervalId) {
+    clearInterval(state.preview.intervalId);
+    state.preview.intervalId = null;
+  }
+  state.preview.isPlaying = false;
+  const profile = activeProfile();
+  if (profile) renderPreviewView(profile);
+}
+
+function ensureAudio() {
+  if (state.preview.audioContext) return state.preview.audioContext;
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  const audioContext = new AudioContextClass();
+  const master = audioContext.createGain();
+  master.gain.value = 0.34;
+  master.connect(audioContext.destination);
+  state.preview.audioContext = audioContext;
+  state.preview.master = master;
+  return audioContext;
+}
+
+function envelopeGain(audioContext, startTime, peak, attack, decay) {
+  const gain = audioContext.createGain();
+  gain.gain.setValueAtTime(0.0001, startTime);
+  gain.gain.exponentialRampToValueAtTime(Math.max(peak, 0.0002), startTime + attack);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + attack + decay);
+  return gain;
+}
+
+function playKick(audioContext, time, velocity) {
+  const oscillator = audioContext.createOscillator();
+  const gain = envelopeGain(audioContext, time, 0.85 * velocity, 0.008, 0.18);
+  oscillator.type = "sine";
+  oscillator.frequency.setValueAtTime(135, time);
+  oscillator.frequency.exponentialRampToValueAtTime(44, time + 0.16);
+  oscillator.connect(gain).connect(state.preview.master);
+  oscillator.start(time);
+  oscillator.stop(time + 0.22);
+}
+
+function noiseBuffer(audioContext, duration) {
+  const length = Math.max(1, Math.floor(audioContext.sampleRate * duration));
+  const buffer = audioContext.createBuffer(1, length, audioContext.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < length; i += 1) {
+    data[i] = Math.random() * 2 - 1;
+  }
+  return buffer;
+}
+
+function playNoiseHit(audioContext, time, velocity, filterType, frequency, duration) {
+  const source = audioContext.createBufferSource();
+  const filter = audioContext.createBiquadFilter();
+  const gain = envelopeGain(audioContext, time, velocity, 0.004, duration);
+  source.buffer = noiseBuffer(audioContext, duration + 0.04);
+  filter.type = filterType;
+  filter.frequency.value = frequency;
+  filter.Q.value = filterType === "bandpass" ? 2.2 : 0.8;
+  source.connect(filter).connect(gain).connect(state.preview.master);
+  source.start(time);
+  source.stop(time + duration + 0.06);
+}
+
+function playSnare(audioContext, time, velocity) {
+  playNoiseHit(audioContext, time, 0.45 * velocity, "bandpass", 1650, 0.16);
+  const body = audioContext.createOscillator();
+  const gain = envelopeGain(audioContext, time, 0.16 * velocity, 0.004, 0.08);
+  body.type = "triangle";
+  body.frequency.value = 185;
+  body.connect(gain).connect(state.preview.master);
+  body.start(time);
+  body.stop(time + 0.1);
+}
+
+function playHat(audioContext, time, velocity, open = false) {
+  playNoiseHit(audioContext, time, (open ? 0.22 : 0.14) * velocity, "highpass", 6800, open ? 0.18 : 0.045);
+}
+
+function playGhost(audioContext, time, velocity) {
+  playNoiseHit(audioContext, time, 0.12 * velocity, "bandpass", 2100, 0.055);
+}
+
+function previewBpm(profile) {
+  const base = {
+    mixture_shout: 126,
+    rock_heavy: 118,
+    nerdy_jazzy_hiphop: 92,
+    breakbeat_live: 104,
+    dubby_half_time: 78
+  };
+  return base[profile.id] || 110;
+}
+
+function buildPreviewEvents(profile) {
+  const density = densityMap[profile.feel_profile.density] ?? 2;
+  const ghostDensity = profile.ghost_notes_policy.section_density.chorus;
+  const ghostLevel = densityMap[ghostDensity] ?? 1;
+  const events = [
+    { step: 0, part: "kick", velocity: 1 },
+    { step: 4, part: "snare", velocity: 0.92 },
+    { step: 8, part: "kick", velocity: 0.88 },
+    { step: 12, part: "snare", velocity: 0.96 }
+  ];
+
+  const hatSteps = density >= 3 ? [...Array(16).keys()] : [0, 2, 4, 6, 8, 10, 12, 14];
+  hatSteps.forEach((step) => events.push({ step, part: "hat", velocity: step % 4 === 0 ? 0.58 : 0.38 }));
+
+  if (profile.id === "mixture_shout") {
+    events.push({ step: 7, part: "kick", velocity: 0.55 }, { step: 15, part: "fill", velocity: 0.66 });
+  }
+  if (profile.id === "rock_heavy") {
+    events.push({ step: 10, part: "kick", velocity: 0.62 });
+  }
+  if (profile.id === "nerdy_jazzy_hiphop") {
+    events.push({ step: 3, part: "ghost", velocity: 0.44 }, { step: 11, part: "ghost", velocity: 0.5 });
+  }
+  if (profile.id === "breakbeat_live") {
+    events.push({ step: 3, part: "kick", velocity: 0.6 }, { step: 6, part: "ghost", velocity: 0.48 }, { step: 14, part: "fill", velocity: 0.7 });
+  }
+  if (profile.id === "dubby_half_time") {
+    events.splice(events.findIndex((event) => event.step === 4 && event.part === "snare"), 1);
+    events.push({ step: 10, part: "hat", velocity: 0.24 });
+  }
+
+  if (ghostLevel >= 2) events.push({ step: 5, part: "ghost", velocity: 0.34 }, { step: 13, part: "ghost", velocity: 0.38 });
+  return events.sort((a, b) => a.step - b.step || a.part.localeCompare(b.part));
+}
+
+function eventOffset(event, profile, stepDuration) {
+  const swing = Number(profile.feel_profile.swing || 0) / 100;
+  const isOffEighth = event.step % 4 === 2;
+  const humanize = profile.feel_profile.humanize === "high" ? 0.012 : profile.feel_profile.humanize === "medium" ? 0.007 : 0.003;
+  const humanOffset = (Math.random() - 0.5) * humanize;
+  return event.step * stepDuration + (isOffEighth ? swing * stepDuration : 0) + humanOffset;
+}
+
+function schedulePreviewBar(profile, startTime) {
+  const audioContext = ensureAudio();
+  const bpm = previewBpm(profile);
+  const stepDuration = 60 / bpm / 4;
+  const events = buildPreviewEvents(profile);
+
+  events.forEach((event) => {
+    const time = startTime + Math.max(0, eventOffset(event, profile, stepDuration));
+    if (event.part === "kick") playKick(audioContext, time, event.velocity);
+    if (event.part === "snare") playSnare(audioContext, time, event.velocity);
+    if (event.part === "hat") playHat(audioContext, time, event.velocity, event.step === 14 && profile.id === "rock_heavy");
+    if (event.part === "ghost") playGhost(audioContext, time, event.velocity);
+    if (event.part === "fill") playSnare(audioContext, time, event.velocity * 0.72);
+  });
+}
+
+async function startPreview() {
+  const profile = activeProfile();
+  if (!profile) return;
+  const audioContext = ensureAudio();
+  if (audioContext.state === "suspended") await audioContext.resume();
+  stopPreview();
+  state.preview.isPlaying = true;
+  state.preview.bpm = previewBpm(profile);
+  const barDuration = 60 / state.preview.bpm * 4;
+  schedulePreviewBar(profile, audioContext.currentTime + 0.05);
+  state.preview.intervalId = setInterval(() => {
+    schedulePreviewBar(activeProfile(), audioContext.currentTime + 0.05);
+  }, barDuration * 1000);
+  renderPreviewView(profile);
 }
 
 function renderProfileList() {
@@ -205,6 +390,40 @@ function renderTranslationView(profile) {
   `;
 }
 
+function renderPreviewView(profile) {
+  const events = buildPreviewEvents(profile);
+  const stepCells = [...Array(16).keys()]
+    .map((step) => {
+      const parts = events.filter((event) => event.step === step).map((event) => event.part);
+      return `<div class="step-cell${parts.length ? " has-hit" : ""}">
+        <span>${step + 1}</span>
+        <strong>${parts.map((part) => escapeHtml(part[0].toUpperCase())).join("")}</strong>
+      </div>`;
+    })
+    .join("");
+
+  refs.views.preview.innerHTML = `
+    <div class="grid">
+      ${card("ブラウザ音プレビュー", `
+        <p class="card-copy">選択中のprofileから16ステップの簡易patternを作り、Web Audioの合成音だけで鳴らします。サンプルや外部依存は使いません。</p>
+        <div class="preview-controls">
+          <button class="preview-button" type="button" data-preview-action="start">${state.preview.isPlaying ? "再スタート" : "再生"}</button>
+          <button class="preview-button secondary" type="button" data-preview-action="stop">停止</button>
+          <span class="preview-state">${state.preview.isPlaying ? "再生中" : "停止中"} / ${previewBpm(profile)} BPM</span>
+        </div>
+      `, true)}
+      ${card("16 step preview", `<div class="step-grid">${stepCells}</div>`, true)}
+      ${card("鳴らしている要素", chipList([...new Set(events.map((event) => event.part))], "token"))}
+      ${card("安全条件", chipList([
+        "Web Audio synthesis only",
+        "no samples",
+        "manual stop",
+        "low master gain"
+      ], "token"))}
+    </div>
+  `;
+}
+
 function renderPolicyView(profile) {
   const transitionRules = profile.section_transition_rules
     .map((rule) => `
@@ -247,21 +466,23 @@ function renderManualView() {
           <li>左の一覧から style profile を選ぶ。</li>
           <li><strong>プロフィール</strong>で、セクション設計・楽器入力・ノリの傾向を見る。</li>
           <li><strong>ドラムフィール</strong>で、構造 <code>structure</code> と表現 <code>expression</code> を確認する。</li>
+          <li><strong>音プレビュー</strong>で、サンプルなしの簡易Web Audio grooveを試聴する。</li>
           <li><strong>制御ポリシー</strong>で、fill / ghost notes / transition の上限と意図を見る。</li>
           <li><strong>開発状況</strong>で、Pages設定・JSON読み込み・未実装範囲を確認する。</li>
-          <li><strong>次の方向</strong>で、ブラウザ音生成・音入力・VCV連携・AIライブ化のロードマップを見る。</li>
+          <li><strong>次の方向</strong>で、音入力・VCV連携・AIライブ化のロードマップを見る。</li>
         </ol>
       `, true)}
       ${card("このUIでできること", chipList([
         "style profile の確認",
         "drum feel の構造確認",
+        "簡易ブラウザ音プレビュー",
         "fill と transition の方針確認",
         "研究docsへの移動",
         "開発状況の把握",
         "次段階ロードマップの確認"
       ]))}
       ${card("このUIではまだやらないこと", chipList([
-        "音を鳴らす",
+        "生音サンプルを鳴らす",
         "MIDIを書き出す",
         "音声解析をする",
         "DAWと同期する",
@@ -288,7 +509,7 @@ function renderStatusView() {
       }))}
       ${card("policy flags", keyValues(policy))}
       ${card("未実装・非対応", chipList([
-        "runtime生成",
+        "本格runtime生成",
         "audio analysis",
         "DAW連携",
         "MIDI書き出し",
@@ -313,7 +534,7 @@ function renderRoadmapView() {
   refs.views.roadmap.innerHTML = `
     <div class="grid">
       ${card("次の方向", `
-        <p class="card-copy">VCVはライブ出力の候補として残しつつ、ブラウザを試聴・開発・予測debugの中心にします。実装はまだ入れず、まずdocs/runtimeで契約を固めます。</p>
+        <p class="card-copy">VCVはライブ出力の候補として残しつつ、ブラウザを試聴・開発・予測debugの中心にします。まずはサンプルなしの簡易Web Audio previewから育てます。</p>
         <div class="section-grid">${roadmapCards}</div>
       `, true)}
       ${card("runtime docs", `<div class="token-row">${docs
@@ -321,7 +542,7 @@ function renderRoadmapView() {
         .map(([label, href]) => `<a class="token" href="${href}">${label}</a>`)
         .join("")}</div>`, true)}
       ${card("今回まだやらないこと", chipList([
-        "音を鳴らすruntime実装",
+        "本格groove engine",
         "音声入力実装",
         "AI/MLモデル追加",
         "dependencies追加",
@@ -343,6 +564,7 @@ function renderActiveProfile() {
   renderProfileList();
   renderProfileView(profile);
   renderTranslationView(profile);
+  renderPreviewView(profile);
   renderPolicyView(profile);
   renderManualView();
   renderStatusView();
@@ -387,5 +609,14 @@ refs.profileList.addEventListener("click", (event) => {
 refs.tabs.forEach((tab) => {
   tab.addEventListener("click", () => setActiveView(tab.dataset.view));
 });
+
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-preview-action]");
+  if (!button) return;
+  if (button.dataset.previewAction === "start") startPreview();
+  if (button.dataset.previewAction === "stop") stopPreview();
+});
+
+window.addEventListener("pagehide", stopPreview);
 
 loadProfiles();

@@ -8,9 +8,22 @@ const state = {
   preview: {
     audioContext: null,
     master: null,
-    intervalId: null,
+    timeoutId: null,
     isPlaying: false,
-    bpm: 120
+    barIndex: 0,
+    lastEvents: [],
+    lastStats: null,
+    tapTimes: [],
+    controls: {
+      bpm: 118,
+      section: "chorus",
+      energy: 68,
+      density: 62,
+      swing: 6,
+      humanize: 46,
+      kit: "tight_band",
+      variationSeed: 137
+    }
   }
 };
 
@@ -48,13 +61,13 @@ const docs = [
 const roadmap = [
   {
     title: "Browser音生成",
-    status: "initial preview",
-    detail: "Web Audioの合成音だけでkick/snare/hat/ghost/fillのpreviewを鳴らす。samples/audio filesは使わない。"
+    status: "generator preview",
+    detail: "Web Audioの合成音だけでkick/snare/hat/ghost/fill/crashを自動生成previewする。samples/audio filesは使わない。"
   },
   {
     title: "Manual groove generator",
-    status: "planned",
-    detail: "profile JSONからbar-level patternを作り、structure/expressionを確認できるようにする。"
+    status: "initial controls",
+    detail: "profile JSONにBPM、section、energy、density、swing、humanizeを重ねてbar-level patternを作る。"
   },
   {
     title: "Audio input",
@@ -108,6 +121,7 @@ const labels = {
   snare: "スネア",
   hat: "ハット",
   ghost_notes: "ゴーストノート",
+  ghost: "ゴースト",
   fill: "フィル",
   crash: "クラッシュ",
   transition: "遷移",
@@ -134,6 +148,33 @@ const densityMap = {
   medium: 2,
   high_to_mid: 3,
   high: 4
+};
+
+const kitPresets = {
+  tight_band: {
+    label: "Tight Band",
+    description: "硬めのkick/snareと短いhatで、バンドの芯を前に出すkit。",
+    kick: { start: 142, end: 46, peak: 0.92, decay: 0.18, tone: "sine" },
+    snare: { noise: 0.5, body: 0.18, filter: 1850, decay: 0.15 },
+    hat: { gain: 0.15, filter: 7600, closed: 0.042, open: 0.18 },
+    crash: { gain: 0.28, filter: 5200, decay: 0.62 }
+  },
+  dusty_pocket: {
+    label: "Dusty Pocket",
+    description: "少し丸く汚したpocket寄り。ghostとswingが見えやすいkit。",
+    kick: { start: 118, end: 52, peak: 0.78, decay: 0.24, tone: "triangle" },
+    snare: { noise: 0.34, body: 0.13, filter: 1250, decay: 0.2 },
+    hat: { gain: 0.11, filter: 5200, closed: 0.06, open: 0.24 },
+    crash: { gain: 0.2, filter: 4300, decay: 0.55 }
+  },
+  dub_space: {
+    label: "Dub Space",
+    description: "低めkickと長めの余白。half-timeや間のあるgroove向け。",
+    kick: { start: 92, end: 38, peak: 0.86, decay: 0.34, tone: "sine" },
+    snare: { noise: 0.38, body: 0.2, filter: 980, decay: 0.26 },
+    hat: { gain: 0.09, filter: 6100, closed: 0.07, open: 0.32 },
+    crash: { gain: 0.17, filter: 3600, decay: 0.78 }
+  }
 };
 
 function escapeHtml(value) {
@@ -173,10 +214,184 @@ function activeProfile() {
   return state.profiles.find((profile) => profile.id === state.activeId) || state.profiles[0];
 }
 
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function normalizeDensity(value, fallback = 0.5) {
+  if (typeof value === "number") return clamp(value, 0, 1);
+  if (!(value in densityMap)) return fallback;
+  return densityMap[value] / 4;
+}
+
+function hashString(value) {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function mulberry32(seed) {
+  let next = seed >>> 0;
+  return () => {
+    next += 0x6d2b79f5;
+    let value = next;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function sectionOptions(profile) {
+  return Object.keys(profile?.section_profile || { verse: {}, chorus: {}, bridge: {}, end: {} });
+}
+
+function previewControls(profile = activeProfile()) {
+  const controls = state.preview.controls;
+  const sections = sectionOptions(profile);
+  if (!sections.includes(controls.section)) controls.section = sections.includes("chorus") ? "chorus" : sections[0];
+  controls.bpm = clamp(Number(controls.bpm) || 118, 54, 190);
+  controls.energy = clamp(Number(controls.energy) || 0, 0, 100);
+  controls.density = clamp(Number(controls.density) || 0, 0, 100);
+  controls.swing = clamp(Number(controls.swing) || 0, 0, 18);
+  controls.humanize = clamp(Number(controls.humanize) || 0, 0, 100);
+  if (!kitPresets[controls.kit]) controls.kit = "tight_band";
+  return controls;
+}
+
+function seededRng(profile, controls, barIndex, salt = "main") {
+  return mulberry32(hashString([
+    profile.id,
+    controls.section,
+    controls.kit,
+    controls.variationSeed,
+    Math.floor(controls.energy),
+    Math.floor(controls.density),
+    Math.floor(controls.swing),
+    Math.floor(controls.humanize),
+    barIndex,
+    salt
+  ].join(":")));
+}
+
+function generationStats(profile, controls, barIndex) {
+  const sectionProfile = profile.section_profile?.[controls.section] || {};
+  const sectionDensity = normalizeDensity(sectionProfile.density, normalizeDensity(profile.feel_profile?.density, 0.5));
+  const profileDensity = normalizeDensity(profile.feel_profile?.density, 0.5);
+  const manualDensity = controls.density / 100;
+  const energy = controls.energy / 100;
+  const densityScore = clamp(profileDensity * 0.28 + sectionDensity * 0.24 + manualDensity * 0.3 + energy * 0.18, 0.08, 1);
+  const ghostScore = clamp(normalizeDensity(profile.ghost_notes_policy?.section_density?.[controls.section], 0.2) * 0.55 + controls.humanize / 220 + densityScore * 0.16, 0, 1);
+  const sectionPriority = Number(profile.fill_policy?.section_priority?.[controls.section] ?? 3);
+  const maxFills = clamp(Number(profile.fill_policy?.max_per_8_bars ?? 1), 0, 8);
+  const fillChance = clamp((maxFills / 8) * 0.55 + sectionPriority / 22 + energy * 0.16 + densityScore * 0.08, 0.03, 0.88);
+  const fillBudget = clamp(Math.round(maxFills * clamp(0.2 + fillChance, 0, 1)), 0, maxFills);
+  const swingMs = Math.round((controls.swing / 100) * (60 / controls.bpm / 4) * 1000);
+  const humanizeMs = Math.round(2 + controls.humanize * 0.12);
+  return {
+    sectionDensity,
+    profileDensity,
+    densityScore,
+    ghostScore,
+    fillChance,
+    fillBudget,
+    sectionPriority,
+    maxFills,
+    swingMs,
+    humanizeMs,
+    barInWindow: barIndex % 8
+  };
+}
+
+function fillSlots(profile, controls, barIndex, stats) {
+  if (stats.fillBudget <= 0) return [];
+  const windowIndex = Math.floor(barIndex / 8);
+  const rng = seededRng(profile, controls, windowIndex, "fill-window");
+  return [...Array(8).keys()]
+    .map((bar) => ({
+      bar,
+      score: rng() + (bar === 7 ? 0.32 : bar === 3 ? 0.16 : 0) + stats.sectionPriority / 80
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, stats.fillBudget)
+    .map((item) => item.bar);
+}
+
+function addEvent(events, step, part, velocity, reason) {
+  const safeStep = clamp(Math.round(step), 0, 15);
+  const existing = events.find((event) => event.step === safeStep && event.part === part);
+  if (existing) {
+    existing.velocity = Math.max(existing.velocity, clamp(velocity, 0.05, 1.2));
+    existing.reason = `${existing.reason}, ${reason}`;
+    return;
+  }
+  events.push({ step: safeStep, part, velocity: clamp(velocity, 0.05, 1.2), reason });
+}
+
+function generateGrooveBar(profile, controls = previewControls(profile), barIndex = state.preview.barIndex) {
+  const rng = seededRng(profile, controls, barIndex);
+  const stats = generationStats(profile, controls, barIndex);
+  const events = [];
+  const energy = controls.energy / 100;
+  const density = stats.densityScore;
+  const isHalfTime = profile.id === "dubby_half_time" || controls.section === "bridge" && energy < 0.42;
+  const isBreakbeat = profile.id === "breakbeat_live";
+  const isPocket = profile.id === "nerdy_jazzy_hiphop";
+  const isHeavy = profile.id === "rock_heavy" || profile.id === "mixture_shout";
+
+  addEvent(events, 0, "kick", 0.82 + energy * 0.18, "downbeat anchor");
+  addEvent(events, isHalfTime ? 8 : 4, "snare", 0.76 + energy * 0.22, isHalfTime ? "half-time backbeat" : "backbeat");
+  if (!isHalfTime) addEvent(events, 12, "snare", 0.78 + energy * 0.2, "backbeat return");
+
+  if (density > 0.32 || isHeavy) addEvent(events, 8, "kick", 0.55 + energy * 0.24, "mid-bar anchor");
+  if (density > 0.5 || isBreakbeat) addEvent(events, rng() > 0.45 ? 10 : 11, "kick", 0.42 + density * 0.28, "density response");
+  if (density > 0.68 || profile.id === "mixture_shout") addEvent(events, rng() > 0.5 ? 7 : 15, "kick", 0.38 + energy * 0.24, "riff pickup");
+  if (isPocket && rng() > 0.28) addEvent(events, rng() > 0.5 ? 3 : 6, "kick", 0.36, "soft displacement");
+  if (isBreakbeat) {
+    addEvent(events, 3, "kick", 0.46 + rng() * 0.18, "breakbeat stagger");
+    addEvent(events, 6, "snare", 0.28 + rng() * 0.18, "break ghost response");
+  }
+
+  let hatSteps = [0, 2, 4, 6, 8, 10, 12, 14];
+  if (density < 0.26) hatSteps = [0, 4, 8, 12];
+  if (density > 0.66) hatSteps = [...Array(16).keys()];
+  if (profile.id === "dubby_half_time" && controls.section !== "chorus") hatSteps = [0, 4, 10, 12];
+  hatSteps.forEach((step) => {
+    const accent = step % 4 === 0 ? 0.2 : 0;
+    const variation = (rng() - 0.5) * 0.12;
+    addEvent(events, step, "hat", 0.24 + density * 0.24 + accent + variation, "timekeeper");
+  });
+
+  const ghostCandidates = isBreakbeat ? [2, 5, 6, 9, 13, 14] : isPocket ? [3, 5, 7, 11, 13] : [5, 11, 13];
+  ghostCandidates.forEach((step) => {
+    if (rng() < stats.ghostScore * (isPocket ? 0.72 : 0.54)) addEvent(events, step, "ghost", 0.18 + rng() * 0.28, "human pocket texture");
+  });
+
+  const slots = fillSlots(profile, controls, barIndex, stats);
+  const fillActive = slots.includes(stats.barInWindow);
+  if (fillActive) {
+    const longFill = profile.fill_policy?.types?.includes("long") && (energy > 0.64 || isBreakbeat);
+    const fillSteps = longFill ? [12, 13, 14, 15] : [14, 15];
+    fillSteps.forEach((step, index) => addEvent(events, step, "fill", 0.42 + energy * 0.34 + index * 0.04, longFill ? "long transition fill" : "short transition fill"));
+  }
+
+  const crashOnPhrase = stats.barInWindow === 0 && (controls.section === "chorus" || controls.section === "end" || energy > 0.72);
+  const crashAfterFill = stats.barInWindow === 0 && slots.includes(7);
+  if (crashOnPhrase || crashAfterFill || rng() < energy * 0.04) addEvent(events, 0, "crash", 0.48 + energy * 0.32, "section entry accent");
+
+  const partOrder = { kick: 0, snare: 1, hat: 2, ghost: 3, fill: 4, crash: 5 };
+  return {
+    events: events.sort((a, b) => a.step - b.step || partOrder[a.part] - partOrder[b.part]),
+    stats: { ...stats, fillActive, fillSlots: slots }
+  };
+}
+
 function stopPreview() {
-  if (state.preview.intervalId) {
-    clearInterval(state.preview.intervalId);
-    state.preview.intervalId = null;
+  if (state.preview.timeoutId) {
+    clearTimeout(state.preview.timeoutId);
+    state.preview.timeoutId = null;
   }
   state.preview.isPlaying = false;
   const profile = activeProfile();
@@ -188,7 +403,7 @@ function ensureAudio() {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   const audioContext = new AudioContextClass();
   const master = audioContext.createGain();
-  master.gain.value = 0.44;
+  master.gain.value = 0.42;
   master.connect(audioContext.destination);
   state.preview.audioContext = audioContext;
   state.preview.master = master;
@@ -203,127 +418,118 @@ function envelopeGain(audioContext, startTime, peak, attack, decay) {
   return gain;
 }
 
+function selectedKit() {
+  return kitPresets[previewControls().kit] || kitPresets.tight_band;
+}
+
 function playKick(audioContext, time, velocity) {
+  const kit = selectedKit();
   const oscillator = audioContext.createOscillator();
-  const gain = envelopeGain(audioContext, time, 0.85 * velocity, 0.008, 0.18);
-  oscillator.type = "sine";
-  oscillator.frequency.setValueAtTime(135, time);
-  oscillator.frequency.exponentialRampToValueAtTime(44, time + 0.16);
+  const gain = envelopeGain(audioContext, time, kit.kick.peak * velocity, 0.008, kit.kick.decay);
+  oscillator.type = kit.kick.tone;
+  oscillator.frequency.setValueAtTime(kit.kick.start, time);
+  oscillator.frequency.exponentialRampToValueAtTime(kit.kick.end, time + kit.kick.decay * 0.84);
   oscillator.connect(gain).connect(state.preview.master);
   oscillator.start(time);
-  oscillator.stop(time + 0.22);
+  oscillator.stop(time + kit.kick.decay + 0.08);
 }
 
 function noiseBuffer(audioContext, duration) {
   const length = Math.max(1, Math.floor(audioContext.sampleRate * duration));
   const buffer = audioContext.createBuffer(1, length, audioContext.sampleRate);
   const data = buffer.getChannelData(0);
-  for (let i = 0; i < length; i += 1) {
-    data[i] = Math.random() * 2 - 1;
-  }
+  for (let i = 0; i < length; i += 1) data[i] = Math.random() * 2 - 1;
   return buffer;
 }
 
-function playNoiseHit(audioContext, time, velocity, filterType, frequency, duration) {
+function playNoiseHit(audioContext, time, velocity, filterType, frequency, duration, q = 1) {
   const source = audioContext.createBufferSource();
   const filter = audioContext.createBiquadFilter();
   const gain = envelopeGain(audioContext, time, velocity, 0.004, duration);
-  source.buffer = noiseBuffer(audioContext, duration + 0.04);
+  source.buffer = noiseBuffer(audioContext, duration + 0.05);
   filter.type = filterType;
   filter.frequency.value = frequency;
-  filter.Q.value = filterType === "bandpass" ? 2.2 : 0.8;
+  filter.Q.value = q;
   source.connect(filter).connect(gain).connect(state.preview.master);
   source.start(time);
   source.stop(time + duration + 0.06);
 }
 
 function playSnare(audioContext, time, velocity) {
-  playNoiseHit(audioContext, time, 0.45 * velocity, "bandpass", 1650, 0.16);
+  const kit = selectedKit();
+  playNoiseHit(audioContext, time, kit.snare.noise * velocity, "bandpass", kit.snare.filter, kit.snare.decay, 2.2);
   const body = audioContext.createOscillator();
-  const gain = envelopeGain(audioContext, time, 0.16 * velocity, 0.004, 0.08);
+  const gain = envelopeGain(audioContext, time, kit.snare.body * velocity, 0.004, 0.08);
   body.type = "triangle";
-  body.frequency.value = 185;
+  body.frequency.value = kit === kitPresets.dub_space ? 150 : 185;
   body.connect(gain).connect(state.preview.master);
   body.start(time);
-  body.stop(time + 0.1);
+  body.stop(time + 0.11);
 }
 
 function playHat(audioContext, time, velocity, open = false) {
-  playNoiseHit(audioContext, time, (open ? 0.22 : 0.14) * velocity, "highpass", 6800, open ? 0.18 : 0.045);
+  const kit = selectedKit();
+  playNoiseHit(audioContext, time, kit.hat.gain * velocity, "highpass", kit.hat.filter, open ? kit.hat.open : kit.hat.closed, 0.8);
 }
 
 function playGhost(audioContext, time, velocity) {
-  playNoiseHit(audioContext, time, 0.12 * velocity, "bandpass", 2100, 0.055);
+  const kit = selectedKit();
+  playNoiseHit(audioContext, time, kit.snare.noise * 0.32 * velocity, "bandpass", kit.snare.filter + 380, 0.055, 2.4);
 }
 
-function previewBpm(profile) {
-  const base = {
-    mixture_shout: 126,
-    rock_heavy: 118,
-    nerdy_jazzy_hiphop: 92,
-    breakbeat_live: 104,
-    dubby_half_time: 78
-  };
-  return base[profile.id] || 110;
+function playFill(audioContext, time, velocity) {
+  playSnare(audioContext, time, velocity * 0.76);
+  playGhost(audioContext, time + 0.035, velocity * 0.56);
 }
 
-function buildPreviewEvents(profile) {
-  const density = densityMap[profile.feel_profile.density] ?? 2;
-  const ghostDensity = profile.ghost_notes_policy.section_density.chorus;
-  const ghostLevel = densityMap[ghostDensity] ?? 1;
-  const events = [
-    { step: 0, part: "kick", velocity: 1 },
-    { step: 4, part: "snare", velocity: 0.92 },
-    { step: 8, part: "kick", velocity: 0.88 },
-    { step: 12, part: "snare", velocity: 0.96 }
-  ];
-
-  const hatSteps = density >= 3 ? [...Array(16).keys()] : [0, 2, 4, 6, 8, 10, 12, 14];
-  hatSteps.forEach((step) => events.push({ step, part: "hat", velocity: step % 4 === 0 ? 0.58 : 0.38 }));
-
-  if (profile.id === "mixture_shout") {
-    events.push({ step: 7, part: "kick", velocity: 0.55 }, { step: 15, part: "fill", velocity: 0.66 });
-  }
-  if (profile.id === "rock_heavy") {
-    events.push({ step: 10, part: "kick", velocity: 0.62 });
-  }
-  if (profile.id === "nerdy_jazzy_hiphop") {
-    events.push({ step: 3, part: "ghost", velocity: 0.44 }, { step: 11, part: "ghost", velocity: 0.5 });
-  }
-  if (profile.id === "breakbeat_live") {
-    events.push({ step: 3, part: "kick", velocity: 0.6 }, { step: 6, part: "ghost", velocity: 0.48 }, { step: 14, part: "fill", velocity: 0.7 });
-  }
-  if (profile.id === "dubby_half_time") {
-    events.splice(events.findIndex((event) => event.step === 4 && event.part === "snare"), 1);
-    events.push({ step: 10, part: "hat", velocity: 0.24 });
-  }
-
-  if (ghostLevel >= 2) events.push({ step: 5, part: "ghost", velocity: 0.34 }, { step: 13, part: "ghost", velocity: 0.38 });
-  return events.sort((a, b) => a.step - b.step || a.part.localeCompare(b.part));
+function playCrash(audioContext, time, velocity) {
+  const kit = selectedKit();
+  playNoiseHit(audioContext, time, kit.crash.gain * velocity, "highpass", kit.crash.filter, kit.crash.decay, 0.5);
 }
 
-function eventOffset(event, profile, stepDuration) {
-  const swing = Number(profile.feel_profile.swing || 0) / 100;
+function eventOffset(event, profile, controls, stepDuration) {
+  const swing = controls.swing / 100;
   const isOffEighth = event.step % 4 === 2;
-  const humanize = profile.feel_profile.humanize === "high" ? 0.012 : profile.feel_profile.humanize === "medium" ? 0.007 : 0.003;
-  const humanOffset = (Math.random() - 0.5) * humanize;
-  return event.step * stepDuration + (isOffEighth ? swing * stepDuration : 0) + humanOffset;
+  const humanRange = (2 + controls.humanize * 0.12) / 1000;
+  const rng = seededRng(profile, controls, state.preview.barIndex, `offset-${event.step}-${event.part}-${event.reason}`);
+  const humanOffset = (rng() - 0.5) * humanRange;
+  const pushPull = profile.feel_profile?.groove_push_pull === "forward" ? -0.004 : profile.feel_profile?.groove_push_pull === "backward" ? 0.006 : 0;
+  const ghostDrag = event.part === "ghost" ? humanRange * 0.25 : 0;
+  return event.step * stepDuration + (isOffEighth ? swing * stepDuration : 0) + humanOffset + pushPull + ghostDrag;
 }
 
 function schedulePreviewBar(profile, startTime) {
   const audioContext = ensureAudio();
-  const bpm = previewBpm(profile);
-  const stepDuration = 60 / bpm / 4;
-  const events = buildPreviewEvents(profile);
+  const controls = previewControls(profile);
+  const stepDuration = 60 / controls.bpm / 4;
+  const generated = generateGrooveBar(profile, controls, state.preview.barIndex);
+  state.preview.lastEvents = generated.events;
+  state.preview.lastStats = generated.stats;
 
-  events.forEach((event) => {
-    const time = startTime + Math.max(0, eventOffset(event, profile, stepDuration));
+  generated.events.forEach((event) => {
+    const time = startTime + Math.max(0, eventOffset(event, profile, controls, stepDuration));
     if (event.part === "kick") playKick(audioContext, time, event.velocity);
     if (event.part === "snare") playSnare(audioContext, time, event.velocity);
-    if (event.part === "hat") playHat(audioContext, time, event.velocity, event.step === 14 && profile.id === "rock_heavy");
+    if (event.part === "hat") playHat(audioContext, time, event.velocity, event.step === 14 && generated.stats.densityScore > 0.52);
     if (event.part === "ghost") playGhost(audioContext, time, event.velocity);
-    if (event.part === "fill") playSnare(audioContext, time, event.velocity * 0.72);
+    if (event.part === "fill") playFill(audioContext, time, event.velocity);
+    if (event.part === "crash") playCrash(audioContext, time, event.velocity);
   });
+}
+
+function scheduleNextPreviewBar(delayMs = 0) {
+  if (!state.preview.isPlaying) return;
+  state.preview.timeoutId = setTimeout(() => {
+    const profile = activeProfile();
+    if (!profile || !state.preview.isPlaying) return;
+    const audioContext = ensureAudio();
+    const controls = previewControls(profile);
+    const barDuration = 60 / controls.bpm * 4;
+    schedulePreviewBar(profile, audioContext.currentTime + 0.05);
+    renderPreviewView(profile);
+    state.preview.barIndex += 1;
+    scheduleNextPreviewBar(barDuration * 1000);
+  }, delayMs);
 }
 
 async function startPreview() {
@@ -331,15 +537,25 @@ async function startPreview() {
   if (!profile) return;
   const audioContext = ensureAudio();
   if (audioContext.state === "suspended") await audioContext.resume();
-  stopPreview();
+  if (state.preview.timeoutId) clearTimeout(state.preview.timeoutId);
   state.preview.isPlaying = true;
-  state.preview.bpm = previewBpm(profile);
-  const barDuration = 60 / state.preview.bpm * 4;
-  schedulePreviewBar(profile, audioContext.currentTime + 0.05);
-  state.preview.intervalId = setInterval(() => {
-    schedulePreviewBar(activeProfile(), audioContext.currentTime + 0.05);
-  }, barDuration * 1000);
+  scheduleNextPreviewBar(0);
   renderPreviewView(profile);
+}
+
+function tapTempo() {
+  const now = performance.now();
+  state.preview.tapTimes = state.preview.tapTimes.filter((time) => now - time < 2400);
+  state.preview.tapTimes.push(now);
+  if (state.preview.tapTimes.length < 2) {
+    renderPreviewView(activeProfile());
+    return;
+  }
+  const intervals = state.preview.tapTimes.slice(1).map((time, index) => time - state.preview.tapTimes[index]);
+  const recent = intervals.slice(-4);
+  const average = recent.reduce((sum, value) => sum + value, 0) / recent.length;
+  state.preview.controls.bpm = Math.round(clamp(60000 / average, 54, 190));
+  renderPreviewView(activeProfile());
 }
 
 function renderProfileList() {
@@ -390,36 +606,94 @@ function renderTranslationView(profile) {
   `;
 }
 
+function meter(label, value, detail = "") {
+  const percent = Math.round(clamp(value, 0, 1) * 100);
+  return `<div class="reason-meter">
+    <div><strong>${escapeHtml(label)}</strong><span>${escapeHtml(detail || `${percent}%`)}</span></div>
+    <div class="meter-track"><span style="width: ${percent}%"></span></div>
+  </div>`;
+}
+
+function controlRange(key, label, min, max, step = 1, unit = "") {
+  const value = previewControls()[key];
+  return `<label class="control-field">
+    <span>${escapeHtml(label)} <strong>${escapeHtml(value)}${unit}</strong></span>
+    <input type="range" min="${min}" max="${max}" step="${step}" value="${escapeHtml(value)}" data-preview-control="${key}" />
+  </label>`;
+}
+
 function renderPreviewView(profile) {
-  const events = buildPreviewEvents(profile);
+  const controls = previewControls(profile);
+  const previewBar = generateGrooveBar(profile, controls, state.preview.barIndex);
+  const events = state.preview.lastEvents.length ? state.preview.lastEvents : previewBar.events;
+  const stats = state.preview.lastStats || previewBar.stats;
+  const sections = sectionOptions(profile);
+  const partLabels = { kick: "K", snare: "S", hat: "H", ghost: "G", fill: "F", crash: "C" };
   const stepCells = [...Array(16).keys()]
     .map((step) => {
-      const parts = events.filter((event) => event.step === step).map((event) => event.part);
-      return `<div class="step-cell${parts.length ? " has-hit" : ""}">
+      const parts = events.filter((event) => event.step === step);
+      return `<div class="step-cell${parts.length ? " has-hit" : ""}" title="${escapeHtml(parts.map((part) => `${part.part}: ${part.reason}`).join(" / "))}">
         <span>${step + 1}</span>
-        <strong>${parts.map((part) => escapeHtml(part[0].toUpperCase())).join("")}</strong>
+        <strong>${parts.map((part) => escapeHtml(partLabels[part.part] || part.part[0].toUpperCase())).join("")}</strong>
       </div>`;
     })
     .join("");
 
   refs.views.preview.innerHTML = `
     <div class="grid">
-      ${card("ブラウザ音プレビュー", `
-        <p class="card-copy">選択中のprofileから16ステップの簡易patternを作り、Web Audioの合成音だけで鳴らします。サンプルや外部依存は使いません。ブラウザの自動再生制限に合わせて、再生ボタンを押した時だけ音が出ます。</p>
+      ${card("自動生成プレビュー", `
+        <p class="card-copy">選択中のprofileに手動入力を重ねて、毎小節少し変わるbar-level grooveを生成します。音はWeb Audio合成だけで、サンプルや外部依存は使いません。</p>
         <div class="preview-controls">
           <button class="preview-button" type="button" data-preview-action="start">${state.preview.isPlaying ? "再スタート" : "再生"}</button>
           <button class="preview-button secondary" type="button" data-preview-action="stop">停止</button>
-          <span class="preview-state">${state.preview.isPlaying ? "再生中" : "停止中"} / ${previewBpm(profile)} BPM</span>
+          <button class="preview-button secondary" type="button" data-preview-action="tap">Tap tempo</button>
+          <button class="preview-button secondary" type="button" data-preview-action="variation">Variation更新</button>
+          <span class="preview-state">${state.preview.isPlaying ? "再生中" : "停止中"} / bar ${state.preview.barIndex} / ${controls.bpm} BPM</span>
         </div>
       `, true)}
-      ${card("16 step preview", `<div class="step-grid">${stepCells}</div>`, true)}
+      ${card("入力合わせ", `
+        <div class="control-grid">
+          <label class="control-field">
+            <span>section <strong>${escapeHtml(controls.section)}</strong></span>
+            <select data-preview-control="section">${sections.map((section) => `<option value="${escapeHtml(section)}"${section === controls.section ? " selected" : ""}>${escapeHtml(section)}</option>`).join("")}</select>
+          </label>
+          <label class="control-field">
+            <span>kit <strong>${escapeHtml(kitPresets[controls.kit].label)}</strong></span>
+            <select data-preview-control="kit">${Object.entries(kitPresets).map(([id, kit]) => `<option value="${escapeHtml(id)}"${id === controls.kit ? " selected" : ""}>${escapeHtml(kit.label)}</option>`).join("")}</select>
+          </label>
+          ${controlRange("bpm", "BPM", 54, 190)}
+          ${controlRange("energy", "energy", 0, 100)}
+          ${controlRange("density", "density", 0, 100)}
+          ${controlRange("swing", "swing", 0, 18, 1, "%")}
+          ${controlRange("humanize", "humanize", 0, 100)}
+        </div>
+      `, true)}
+      ${card("16 step generated bar", `<div class="step-grid">${stepCells}</div>`, true)}
+      ${card("生成理由メーター", `
+        ${meter("密度", stats.densityScore, `${Math.round(stats.densityScore * 100)}% / profile + section + manual`)}
+        ${meter("fill", stats.fillChance, `${stats.fillBudget}/${stats.maxFills} per 8 bars / slots ${stats.fillSlots.join(", ") || "none"}`)}
+        ${meter("ghost", stats.ghostScore, `${Math.round(stats.ghostScore * 100)}% / humanize + section`)}
+        ${meter("swing", controls.swing / 18, `${stats.swingMs}ms offset`)}
+        ${meter("humanize", controls.humanize / 100, `±${stats.humanizeMs}ms`)}
+      `)}
+      ${card("現在の出力", keyValues({
+        current_bpm: controls.bpm,
+        section: controls.section,
+        kit: kitPresets[controls.kit].label,
+        density: `${Math.round(stats.densityScore * 100)}%`,
+        fill_probability: `${Math.round(stats.fillChance * 100)}%`,
+        generated_bar: state.preview.barIndex,
+        variation_seed: controls.variationSeed
+      }))}
       ${card("鳴らしている要素", chipList([...new Set(events.map((event) => event.part))], "token"))}
+      ${card("kit detail", `<p class="card-copy">${escapeHtml(kitPresets[controls.kit].description)}</p>${chipList(Object.keys(kitPresets), "token")}`)}
       ${card("安全条件", chipList([
         "Web Audio synthesis only",
         "no samples",
+        "no audio storage",
         "manual stop",
-        "low master gain"
-      ], "token"))}
+        "no external network"
+      ], "token"), true)}
     </div>
   `;
 }
@@ -466,7 +740,8 @@ function renderManualView() {
           <li>左の一覧から style profile を選ぶ。</li>
           <li><strong>プロフィール</strong>で、セクション設計・楽器入力・ノリの傾向を見る。</li>
           <li><strong>ドラムフィール</strong>で、構造 <code>structure</code> と表現 <code>expression</code> を確認する。</li>
-          <li><strong>音プレビュー</strong>で、サンプルなしの簡易Web Audio grooveを試聴する。</li>
+          <li><strong>自動生成プレビュー</strong>で、BPM、section、kit、energy、density、swing、humanizeを操作してWeb Audio grooveを試聴する。</li>
+          <li><strong>Tap tempo</strong>を数回押して、手元のテンポ感にBPMを合わせる。</li>
           <li><strong>制御ポリシー</strong>で、fill / ghost notes / transition の上限と意図を見る。</li>
           <li><strong>開発状況</strong>で、Pages設定・JSON読み込み・未実装範囲を確認する。</li>
           <li><strong>次の方向</strong>で、音入力・VCV連携・AIライブ化のロードマップを見る。</li>
@@ -475,7 +750,10 @@ function renderManualView() {
       ${card("このUIでできること", chipList([
         "style profile の確認",
         "drum feel の構造確認",
-        "簡易ブラウザ音プレビュー",
+        "bar-level groove 自動生成",
+        "3種類の合成kit切替",
+        "tap tempo",
+        "section/energy/density調整",
         "fill と transition の方針確認",
         "研究docsへの移動",
         "開発状況の把握",
@@ -484,7 +762,7 @@ function renderManualView() {
       ${card("このUIではまだやらないこと", chipList([
         "生音サンプルを鳴らす",
         "MIDIを書き出す",
-        "音声解析をする",
+        "マイク入力解析をする",
         "DAWと同期する",
         "サンプルを管理する"
       ], "token"))}
@@ -509,8 +787,8 @@ function renderStatusView() {
       }))}
       ${card("policy flags", keyValues(policy))}
       ${card("未実装・非対応", chipList([
-        "本格runtime生成",
-        "audio analysis",
+        "audio input analysis",
+        "AI/ML groove prediction",
         "DAW連携",
         "MIDI書き出し",
         "samples/audio files"
@@ -534,7 +812,7 @@ function renderRoadmapView() {
   refs.views.roadmap.innerHTML = `
     <div class="grid">
       ${card("次の方向", `
-        <p class="card-copy">VCVはライブ出力の候補として残しつつ、ブラウザを試聴・開発・予測debugの中心にします。まずはサンプルなしの簡易Web Audio previewから育てます。</p>
+        <p class="card-copy">VCVはライブ出力の候補として残しつつ、ブラウザを試聴・開発・予測debugの中心にします。現在はサンプルなしのWeb Audio自動生成previewを育てています。</p>
         <div class="section-grid">${roadmapCards}</div>
       `, true)}
       ${card("runtime docs", `<div class="token-row">${docs
@@ -542,7 +820,6 @@ function renderRoadmapView() {
         .map(([label, href]) => `<a class="token" href="${href}">${label}</a>`)
         .join("")}</div>`, true)}
       ${card("今回まだやらないこと", chipList([
-        "本格groove engine",
         "音声入力実装",
         "AI/MLモデル追加",
         "dependencies追加",
@@ -556,6 +833,7 @@ function renderRoadmapView() {
 function renderActiveProfile() {
   const profile = activeProfile();
   if (!profile) return;
+  previewControls(profile);
 
   refs.profileId.textContent = profile.id;
   refs.profileLabel.textContent = profile.label;
@@ -603,6 +881,8 @@ refs.profileList.addEventListener("click", (event) => {
   const button = event.target.closest("[data-profile-id]");
   if (!button) return;
   state.activeId = button.dataset.profileId;
+  state.preview.lastEvents = [];
+  state.preview.lastStats = null;
   renderActiveProfile();
 });
 
@@ -615,6 +895,31 @@ document.addEventListener("click", (event) => {
   if (!button) return;
   if (button.dataset.previewAction === "start") startPreview();
   if (button.dataset.previewAction === "stop") stopPreview();
+  if (button.dataset.previewAction === "tap") tapTempo();
+  if (button.dataset.previewAction === "variation") {
+    state.preview.controls.variationSeed = Math.floor(Math.random() * 100000);
+    state.preview.lastEvents = [];
+    state.preview.lastStats = null;
+    renderPreviewView(activeProfile());
+  }
+});
+
+document.addEventListener("input", (event) => {
+  const control = event.target.closest("[data-preview-control]");
+  if (!control) return;
+  state.preview.controls[control.dataset.previewControl] = control.type === "range" ? Number(control.value) : control.value;
+  state.preview.lastEvents = [];
+  state.preview.lastStats = null;
+  renderPreviewView(activeProfile());
+});
+
+document.addEventListener("change", (event) => {
+  const control = event.target.closest("[data-preview-control]");
+  if (!control) return;
+  state.preview.controls[control.dataset.previewControl] = control.type === "range" ? Number(control.value) : control.value;
+  state.preview.lastEvents = [];
+  state.preview.lastStats = null;
+  renderPreviewView(activeProfile());
 });
 
 window.addEventListener("pagehide", stopPreview);

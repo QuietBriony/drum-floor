@@ -34,4 +34,4 @@
 - GitHub Pages は `main` + `/(root)` を公開元にする
 - Pages UI は profile確認、使い方確認、開発状況把握のための入口として使う
 - ブラウザ音生成と音入力予測は将来実装対象だが、最初は合成音・ルールベース・手動停止を前提にする
-- Pages UI の音プレビューは Web Audio 合成音のみを使い、サンプル/audio filesは使わない
+- Pages UI の音プレビューは Web Audio 合成音のみを使い、サンプル/audio filesは保存・追加しない

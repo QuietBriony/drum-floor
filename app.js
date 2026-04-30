@@ -188,7 +188,7 @@ function ensureAudio() {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   const audioContext = new AudioContextClass();
   const master = audioContext.createGain();
-  master.gain.value = 0.34;
+  master.gain.value = 0.44;
   master.connect(audioContext.destination);
   state.preview.audioContext = audioContext;
   state.preview.master = master;
@@ -371,7 +371,7 @@ function renderProfileView(profile) {
   refs.views.profile.innerHTML = `
     <div class="grid">
       ${card(`${labelFor("feel_profile")}`, keyValues(profile.feel_profile))}
-      ${card(`${labelFor("instrument_profile")}`, `<div class="grid inner-grid">${instruments}</div>`)}
+      ${card(`${labelFor("instrument_profile")}`, `<div class="grid inner-grid">${instruments}</div>`, true)}
       ${card(`${labelFor("section_profile")}`, `<div class="section-grid">${sections}</div>`, true)}
     </div>
   `;
@@ -405,7 +405,7 @@ function renderPreviewView(profile) {
   refs.views.preview.innerHTML = `
     <div class="grid">
       ${card("ブラウザ音プレビュー", `
-        <p class="card-copy">選択中のprofileから16ステップの簡易patternを作り、Web Audioの合成音だけで鳴らします。サンプルや外部依存は使いません。</p>
+        <p class="card-copy">選択中のprofileから16ステップの簡易patternを作り、Web Audioの合成音だけで鳴らします。サンプルや外部依存は使いません。ブラウザの自動再生制限に合わせて、再生ボタンを押した時だけ音が出ます。</p>
         <div class="preview-controls">
           <button class="preview-button" type="button" data-preview-action="start">${state.preview.isPlaying ? "再スタート" : "再生"}</button>
           <button class="preview-button secondary" type="button" data-preview-action="stop">停止</button>

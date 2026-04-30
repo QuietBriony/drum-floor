@@ -285,9 +285,10 @@ h3 {
   font-family: "Trebuchet MS", Verdana, sans-serif;
   font-size: 0.84rem;
   font-weight: 700;
+  line-height: 1.25;
   padding: 10px 12px;
   text-align: center;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .tab-button.is-active {
@@ -489,6 +490,78 @@ code {
   color: var(--muted);
   font-family: "Trebuchet MS", "Yu Gothic", sans-serif;
   font-size: 0.84rem;
+}
+
+.control-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+}
+
+.control-field {
+  background: rgba(36, 37, 33, 0.045);
+  border: 1px solid rgba(36, 37, 33, 0.12);
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+}
+
+.control-field span {
+  color: var(--muted);
+  display: flex;
+  font-family: "Trebuchet MS", "Yu Gothic", sans-serif;
+  font-size: 0.78rem;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.control-field strong {
+  color: var(--coal);
+}
+
+.control-field input,
+.control-field select {
+  accent-color: var(--brick);
+  background: var(--paper-strong);
+  border: 1px solid rgba(36, 37, 33, 0.16);
+  color: var(--ink);
+  min-width: 0;
+  padding: 9px 10px;
+  width: 100%;
+}
+
+.reason-meter {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+
+.reason-meter > div:first-child {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-family: "Trebuchet MS", "Yu Gothic", sans-serif;
+  font-size: 0.78rem;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.reason-meter strong {
+  color: var(--coal);
+}
+
+.meter-track {
+  background: rgba(36, 37, 33, 0.08);
+  border: 1px solid rgba(36, 37, 33, 0.1);
+  height: 10px;
+  overflow: hidden;
+}
+
+.meter-track span {
+  background: linear-gradient(90deg, var(--moss), var(--brass), var(--brick));
+  display: block;
+  height: 100%;
 }
 
 .step-grid {

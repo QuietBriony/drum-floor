@@ -22,6 +22,7 @@
 - `docs/ops/` : ライブ運用・事故対応
 - `docs/patches/` : パッチ仕様（モジュール表/配線図）
 - `docs/groove/` : グルーヴ理論/生成ルール
+- `docs/runtime/` : ブラウザ音生成、音入力予測、VCV/Live連携の将来設計
 - `patches/` : VCVパッチ本体（.vcv）
 - `docs/groove-profile-schema.md` : drum-floor の band groove profile スキーマ
 - `docs/input-output-example.md` : profile 入力→ドラム出力の例
@@ -32,3 +33,4 @@
 - 1PR = 1目的（小さく改修）
 - GitHub Pages は `main` + `/(root)` を公開元にする
 - Pages UI は profile確認、使い方確認、開発状況把握のための入口として使う
+- ブラウザ音生成と音入力予測は将来実装対象だが、最初は合成音・ルールベース・手動停止を前提にする

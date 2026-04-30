@@ -66,3 +66,7 @@
 - [Fill and transition policy](./groove/fill-and-transition-policy.md)
 - [Evaluation rubric v1](./groove/evaluation-rubric-v1.md)
 - [Future runtime contract](./groove/future-runtime-contract.md)
+- [Browser groove engine roadmap](./runtime/browser-groove-engine.md)
+- [Audio input groove prediction](./runtime/audio-input-groove-prediction.md)
+- [VCV and live bridge roadmap](./runtime/vcv-and-live-bridge.md)
+- [Live AI audio interface roadmap](./runtime/live-ai-audio-interface-roadmap.md)

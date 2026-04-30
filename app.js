@@ -19,7 +19,8 @@ const refs = {
     translation: document.querySelector("#view-translation"),
     policy: document.querySelector("#view-policy"),
     manual: document.querySelector("#view-manual"),
-    status: document.querySelector("#view-status")
+    status: document.querySelector("#view-status"),
+    roadmap: document.querySelector("#view-roadmap")
   }
 };
 
@@ -29,7 +30,44 @@ const docs = [
   ["フィル/遷移ポリシー", "docs/groove/fill-and-transition-policy.md"],
   ["評価ルーブリック", "docs/groove/evaluation-rubric-v1.md"],
   ["将来runtime契約", "docs/groove/future-runtime-contract.md"],
+  ["ブラウザ音生成", "docs/runtime/browser-groove-engine.md"],
+  ["音入力予測", "docs/runtime/audio-input-groove-prediction.md"],
+  ["VCV/Live連携", "docs/runtime/vcv-and-live-bridge.md"],
+  ["Live AIロードマップ", "docs/runtime/live-ai-audio-interface-roadmap.md"],
   ["schema", "docs/schema/groove-profiles.schema.json"]
+];
+
+const roadmap = [
+  {
+    title: "Browser音生成",
+    status: "planned",
+    detail: "Web Audioの合成音だけでkick/snare/hatのpreviewを鳴らす。samples/audio filesは使わない。"
+  },
+  {
+    title: "Manual groove generator",
+    status: "planned",
+    detail: "profile JSONからbar-level patternを作り、structure/expressionを確認できるようにする。"
+  },
+  {
+    title: "Audio input",
+    status: "planned",
+    detail: "getUserMediaでマイク/line inputを受け、音量・onset・rough densityを読む。"
+  },
+  {
+    title: "Groove prediction",
+    status: "planned",
+    detail: "最初はAI直結ではなく、音入力featuresをprofile候補へ写すルールベースで始める。"
+  },
+  {
+    title: "VCV bridge",
+    status: "optional live output",
+    detail: "VCVはライブ安定出力の候補。browser engineを唯一の出口にしない。"
+  },
+  {
+    title: "AI + audio interface live co-player",
+    status: "long-term target",
+    detail: "band inputを聞いて次のsection/fill/densityを提案・生成する長期目標。"
+  }
 ];
 
 const labels = {
@@ -211,6 +249,7 @@ function renderManualView() {
           <li><strong>ドラムフィール</strong>で、構造 <code>structure</code> と表現 <code>expression</code> を確認する。</li>
           <li><strong>制御ポリシー</strong>で、fill / ghost notes / transition の上限と意図を見る。</li>
           <li><strong>開発状況</strong>で、Pages設定・JSON読み込み・未実装範囲を確認する。</li>
+          <li><strong>次の方向</strong>で、ブラウザ音生成・音入力・VCV連携・AIライブ化のロードマップを見る。</li>
         </ol>
       `, true)}
       ${card("このUIでできること", chipList([
@@ -218,7 +257,8 @@ function renderManualView() {
         "drum feel の構造確認",
         "fill と transition の方針確認",
         "研究docsへの移動",
-        "開発状況の把握"
+        "開発状況の把握",
+        "次段階ロードマップの確認"
       ]))}
       ${card("このUIではまだやらないこと", chipList([
         "音を鳴らす",
@@ -259,6 +299,39 @@ function renderStatusView() {
   `;
 }
 
+function renderRoadmapView() {
+  const roadmapCards = roadmap
+    .map((item) => `
+      <article class="section-box roadmap-box">
+        <strong>${escapeHtml(item.title)}</strong>
+        <span class="roadmap-status">${escapeHtml(item.status)}</span>
+        <p>${escapeHtml(item.detail)}</p>
+      </article>
+    `)
+    .join("");
+
+  refs.views.roadmap.innerHTML = `
+    <div class="grid">
+      ${card("次の方向", `
+        <p class="card-copy">VCVはライブ出力の候補として残しつつ、ブラウザを試聴・開発・予測debugの中心にします。実装はまだ入れず、まずdocs/runtimeで契約を固めます。</p>
+        <div class="section-grid">${roadmapCards}</div>
+      `, true)}
+      ${card("runtime docs", `<div class="token-row">${docs
+        .filter(([, href]) => href.startsWith("docs/runtime/") || href.includes("future-runtime-contract"))
+        .map(([label, href]) => `<a class="token" href="${href}">${label}</a>`)
+        .join("")}</div>`, true)}
+      ${card("今回まだやらないこと", chipList([
+        "音を鳴らすruntime実装",
+        "音声入力実装",
+        "AI/MLモデル追加",
+        "dependencies追加",
+        "samples/audio files追加",
+        "VCV自動操作"
+      ], "token"), true)}
+    </div>
+  `;
+}
+
 function renderActiveProfile() {
   const profile = activeProfile();
   if (!profile) return;
@@ -273,6 +346,7 @@ function renderActiveProfile() {
   renderPolicyView(profile);
   renderManualView();
   renderStatusView();
+  renderRoadmapView();
 }
 
 function setActiveView(view) {

@@ -7,7 +7,7 @@
 Preferred command:
 
 ```bash
-python -m drum_floor generate --style mixture_shout --bpm 126 --bars 4 --energy 72 --seed 42 --out live/candidates/seed-42
+python -m drum_floor generate --style mixture_shout --frame riff_shout_floor --bpm 126 --bars 4 --energy 72 --seed 42 --out live/candidates/seed-42
 ```
 
 Read-only candidate inspection:
@@ -28,6 +28,7 @@ It also writes a structured operation log under `live/logs/`.
 ## Inputs
 
 - `--style`: style profile id from `profiles/groove-profiles.json`
+- `--frame`: optional drum pattern frame id from `patterns/drum-pattern-frames.json`; when omitted, the generator selects one by style affinity
 - `--bpm`: tempo in BPM, 40-240
 - `--bars`: number of 4/4 bars, 1-128
 - `--energy`: performance energy, 0-100
@@ -36,7 +37,7 @@ It also writes a structured operation log under `live/logs/`.
 
 `inspect` takes one positional candidate directory and performs no writes.
 
-`profiles/groove-profiles.json` is the source of truth. MIDI is a compiled artifact.
+`profiles/groove-profiles.json` and `patterns/drum-pattern-frames.json` are the JSON sources of truth. MIDI is a compiled artifact.
 
 ## Outputs
 

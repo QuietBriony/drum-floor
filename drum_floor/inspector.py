@@ -88,6 +88,7 @@ def inspect_candidate(candidate_dir: Path) -> InspectResult:
         "candidate_dir": str(root),
         "candidate_id": pattern_candidate or meta_candidate,
         "style": pattern.get("inputs", {}).get("style") if pattern else None,
+        "frame": pattern.get("inputs", {}).get("frame") or pattern.get("pattern_frame", {}).get("id") if pattern else None,
         "bpm": pattern.get("inputs", {}).get("bpm") if pattern else None,
         "bars": pattern.get("inputs", {}).get("bars") if pattern else None,
         "energy": pattern.get("inputs", {}).get("energy") if pattern else None,

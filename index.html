@@ -27,15 +27,15 @@
     <main class="app-shell">
       <section class="hero">
         <div>
-          <p class="eyebrow">手入力profileから自動グルーブを生成</p>
-          <h1>バンドのノリを、ブラウザで試す。</h1>
-          <p class="hero-copy">style profile をもとに、手動入力とtap tempoで変化するWeb Audio合成grooveを試せる開発用UIです。</p>
+          <p class="eyebrow">AI co-player / local audio follow</p>
+          <h1>バンドの爆発を、間から作る。</h1>
+          <p class="hero-copy">style profile、手動intent、ローカル音入力featuresから、AI Groove Co-playerが次のbarを判断する開発用Live UIです。</p>
         </div>
         <div class="policy-strip" aria-label="安全ポリシー">
-          <span>合成音preview</span>
+          <span>AI co-player</span>
           <span>サンプルなし</span>
           <span>音声保存なし</span>
-          <span>手動停止</span>
+          <span>緊急停止</span>
         </div>
       </section>
 
@@ -61,7 +61,7 @@
           <div class="tabbar" role="tablist" aria-label="profile表示切り替え">
             <button class="tab-button is-active" type="button" data-view="profile">プロフィール</button>
             <button class="tab-button" type="button" data-view="translation">ドラムフィール</button>
-          <button class="tab-button" type="button" data-view="preview">自動生成プレビュー</button>
+            <button class="tab-button" type="button" data-view="preview">AI Live</button>
             <button class="tab-button" type="button" data-view="policy">制御ポリシー</button>
             <button class="tab-button" type="button" data-view="manual">使い方</button>
             <button class="tab-button" type="button" data-view="status">開発状況</button>
@@ -81,6 +81,6 @@
       </section>
     </main>
 
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
   </body>
 </html>

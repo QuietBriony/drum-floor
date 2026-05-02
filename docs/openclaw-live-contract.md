@@ -10,6 +10,12 @@ Preferred command:
 python -m drum_floor generate --style mixture_shout --bpm 126 --bars 4 --energy 72 --seed 42 --out live/candidates/seed-42
 ```
 
+Read-only candidate inspection:
+
+```bash
+python -m drum_floor inspect live/candidates/seed-42
+```
+
 The command is deterministic for the same input arguments and profile JSON. It creates exactly these files in `--out`:
 
 - `pattern.json`
@@ -27,6 +33,8 @@ It also writes a structured operation log under `live/logs/`.
 - `--energy`: performance energy, 0-100
 - `--seed`: deterministic generation seed
 - `--out`: generated candidate output directory
+
+`inspect` takes one positional candidate directory and performs no writes.
 
 `profiles/groove-profiles.json` is the source of truth. MIDI is a compiled artifact.
 
@@ -75,6 +83,7 @@ The CLI returns a non-zero exit code and writes a `generate-failed` log in `live
 
 1. OpenClaw requests a candidate under `live/candidates/<candidate-id>/`.
 2. A human reviews `preview.txt`, `pattern.json`, and optionally previews `drums.mid` in Ableton.
-3. If accepted, a human copies or moves the candidate into `live/armed/`.
-4. Rejected candidates may be moved to `live/archive/rejected/` by a human or separate reviewed tooling.
-5. OpenClaw never arms a candidate by itself.
+3. OpenClaw may run `python -m drum_floor inspect <candidate>` to verify fixed outputs and safety metadata.
+4. If accepted, a human copies or moves the candidate into `live/armed/`.
+5. Rejected candidates may be moved to `live/archive/rejected/` by a human or separate reviewed tooling.
+6. OpenClaw never arms a candidate by itself.

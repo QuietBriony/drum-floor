@@ -60,6 +60,12 @@ The command writes exactly:
 
 It also writes a structured operation log under `live/logs/` so future OpenClaw runs can inspect success/failure without touching `live/armed/`.
 
+Inspect a generated candidate without arming it:
+
+```bash
+python -m drum_floor inspect live/candidates/seed-42
+```
+
 Design boundary:
 
 - JSON is source of truth.

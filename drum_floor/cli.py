@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from .generator import GenerateRequest, generate_candidate
+from .inspector import inspect_candidate
 from .live_log import write_live_log
 
 
@@ -24,6 +25,11 @@ def build_parser() -> argparse.ArgumentParser:
     generate.add_argument("--energy", required=True, type=int, help="Energy amount, 0-100.")
     generate.add_argument("--seed", required=True, type=int, help="Deterministic generation seed.")
     generate.add_argument("--out", required=True, type=Path, help="Output directory for the fixed candidate files.")
+    inspect = subparsers.add_parser(
+        "inspect",
+        help="Inspect a generated candidate directory without arming or modifying it.",
+    )
+    inspect.add_argument("candidate", type=Path, help="Candidate directory containing the fixed generated files.")
     return parser
 
 
@@ -70,5 +76,18 @@ def main(argv: list[str] | None = None) -> int:
             print(f"- {path.name}")
         print(f"log: {log_path}")
         return 0
+    if args.command == "inspect":
+        result = inspect_candidate(args.candidate)
+        print(f"candidate: {result.summary.get('candidate_id') or '-'}")
+        print(f"directory: {result.candidate_dir}")
+        print(f"ok: {str(result.ok).lower()}")
+        for key in ("style", "bpm", "bars", "energy", "seed", "event_count"):
+            if key in result.summary:
+                print(f"{key}: {result.summary[key]}")
+        for warning in result.warnings:
+            print(f"warning: {warning}")
+        for error in result.errors:
+            print(f"error: {error}")
+        return 0 if result.ok else 1
     parser.error("unknown command")
     return 2

@@ -37,6 +37,7 @@ class GenerateRequest:
 class GenerateResult:
     out_dir: Path
     files: tuple[Path, Path, Path, Path]
+    candidate_id: str
 
 
 def _load_profiles() -> dict[str, Any]:
@@ -70,6 +71,11 @@ def _safe_out_dir(out: Path) -> Path:
     if resolved == archive or archive in resolved.parents:
         raise ValueError("refusing to write under live/archive; use live/candidates or another generated out dir")
     return resolved
+
+
+def _candidate_id(request: GenerateRequest, out_dir: Path) -> str:
+    out_name = out_dir.name or "candidate"
+    return f"{out_name}-{request.style}-{request.bpm}bpm-{request.bars}bars-seed{request.seed}"
 
 
 def _ensure_output_is_new(out_dir: Path) -> None:
@@ -195,11 +201,13 @@ def generate_candidate(request: GenerateRequest) -> GenerateResult:
     profile = _profile_by_id(data, request.style)
     out_dir.mkdir(parents=True, exist_ok=True)
     _ensure_output_is_new(out_dir)
+    candidate_id = _candidate_id(request, out_dir)
 
     events = _generate_events(profile, request)
     created_at = datetime.now(timezone.utc).isoformat()
     pattern = {
         "schema": "drum-floor.live.pattern.v1",
+        "candidate_id": candidate_id,
         "source_of_truth": "profiles/groove-profiles.json",
         "inputs": {
             "style": request.style,
@@ -216,6 +224,7 @@ def generate_candidate(request: GenerateRequest) -> GenerateResult:
     }
     meta = {
         "schema": "drum-floor.live.meta.v1",
+        "candidate_id": candidate_id,
         "created_at": created_at,
         "generator": "python -m drum_floor generate",
         "outputs": list(FIXED_OUTPUTS),
@@ -236,4 +245,4 @@ def generate_candidate(request: GenerateRequest) -> GenerateResult:
     write_midi(midi_path, events, bpm=request.bpm)
     preview_path.write_text(_preview_text(pattern), encoding="utf-8")
     meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return GenerateResult(out_dir=out_dir, files=(pattern_path, midi_path, preview_path, meta_path))
+    return GenerateResult(out_dir=out_dir, files=(pattern_path, midi_path, preview_path, meta_path), candidate_id=candidate_id)

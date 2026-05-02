@@ -17,6 +17,8 @@ The command is deterministic for the same input arguments and profile JSON. It c
 - `preview.txt`
 - `meta.json`
 
+It also writes a structured operation log under `live/logs/`.
+
 ## Inputs
 
 - `--style`: style profile id from `profiles/groove-profiles.json`
@@ -34,6 +36,7 @@ The command is deterministic for the same input arguments and profile JSON. It c
 - `drums.mid`: MIDI rendering of `pattern.json`
 - `preview.txt`: human-readable step preview
 - `meta.json`: generator metadata and safety flags
+- `live/logs/*.json`: operation result log for future OpenClaw inspection
 
 ## Writable directories
 
@@ -65,6 +68,8 @@ The generator must fail without partial live arming when:
 - profile JSON cannot be read or parsed
 
 On failure, OpenClaw should leave the current live state untouched and report the error to a human.
+
+The CLI returns a non-zero exit code and writes a `generate-failed` log in `live/logs/` when it can safely do so.
 
 ## Human-armed workflow
 

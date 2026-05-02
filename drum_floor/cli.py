@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from .generator import GenerateRequest, generate_candidate
+from .live_log import write_live_log
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -38,10 +39,36 @@ def main(argv: list[str] | None = None) -> int:
             seed=args.seed,
             out=args.out,
         )
-        result = generate_candidate(request)
+        try:
+            result = generate_candidate(request)
+        except Exception as error:
+            log_path = write_live_log("generate-failed", {
+                "style": request.style,
+                "bpm": request.bpm,
+                "bars": request.bars,
+                "energy": request.energy,
+                "seed": request.seed,
+                "out": str(request.out),
+                "error": str(error),
+            })
+            print(f"error: {error}")
+            print(f"log: {log_path}")
+            return 1
+        log_path = write_live_log("generate-ok", {
+            "candidate_id": result.candidate_id,
+            "style": request.style,
+            "bpm": request.bpm,
+            "bars": request.bars,
+            "energy": request.energy,
+            "seed": request.seed,
+            "out": str(result.out_dir),
+            "outputs": [path.name for path in result.files],
+        })
         print(f"generated: {result.out_dir}")
+        print(f"candidate: {result.candidate_id}")
         for path in result.files:
             print(f"- {path.name}")
+        print(f"log: {log_path}")
         return 0
     parser.error("unknown command")
     return 2

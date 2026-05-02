@@ -58,6 +58,8 @@ The command writes exactly:
 - `preview.txt`
 - `meta.json`
 
+It also writes a structured operation log under `live/logs/` so future OpenClaw runs can inspect success/failure without touching `live/armed/`.
+
 Design boundary:
 
 - JSON is source of truth.

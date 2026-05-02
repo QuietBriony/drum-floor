@@ -52,6 +52,8 @@
 
 These frames are not sample packs or copied loops. They describe how an internal Pocket Director should handle space, snare lag, kick push, ghost-note glue, bass lock, and mix hints before the generator compiles a bar.
 
+The Pages UI loads these frames and lets you switch the current Pocket Director while previewing the AI Live groove.
+
 See `docs/drum-pattern-frame-contract.md` for the contract and future CLI/UI connection points.
 
 ## Live candidate CLI

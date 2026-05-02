@@ -34,6 +34,17 @@ function card(title, content, wide = false) {
   return `<article class="card${wide ? " is-wide" : ""}"><h3>${title}</h3>${content}</article>`;
 }
 
+function activePatternFrame(state, profile) {
+  const requestedId = state.controlState.controls.frame;
+  const frames = state.patternFrames || [];
+  if (!frames.length) return null;
+  if (requestedId && requestedId !== "auto") {
+    const requested = frames.find((frame) => frame.id === requestedId);
+    if (requested) return requested;
+  }
+  return frames.find((frame) => frame.style_affinity?.includes(profile.id)) || frames[0];
+}
+
 function meter(label, value, detail = "") {
   const percent = Math.round(Math.max(0, Math.min(1, value)) * 100);
   return `<div class="reason-meter">
@@ -89,6 +100,30 @@ function renderTranslationView(profile) {
   </div>`;
 }
 
+function renderPatternFrameSummary(frame) {
+  if (!frame) return card("ドラムパターン枠", `<p class="card-copy">patterns/drum-pattern-frames.json を読み込み中です。</p>`);
+  const director = frame.pocket_director || {};
+  return card("Pocket Director", `
+    <p class="card-copy">${escapeHtml(frame.description)}</p>
+    ${chipList(frame.feel_tags || [], "token")}
+    <div class="kv-grid">
+      <div class="kv"><span>${labelFor("pattern_frame")}</span><span>${escapeHtml(frame.label)} <code>${escapeHtml(frame.id)}</code></span></div>
+      <div class="kv"><span>${labelFor("bass_lock")}</span><span>${escapeHtml(director.bass_lock || "-")}</span></div>
+    </div>
+    ${meter("間 space", Number(director.space || 0), `${Math.round(Number(director.space || 0) * 100)}%`)}
+    ${meter("ゴースト接着 ghost glue", Number(director.ghost_glue || 0), `${Math.round(Number(director.ghost_glue || 0) * 100)}%`)}
+    ${meter("ハット揺れ hat swing", Number(director.hat_swing || 0), `${Math.round(Number(director.hat_swing || 0) * 100)}%`)}
+    ${keyValues({
+      snare_lag_ms: director.snare_lag_ms,
+      kick_push_ms: director.kick_push_ms
+    })}`);
+}
+
+function renderMixHints(frame) {
+  const hints = frame?.pocket_director?.mix_hints || {};
+  return card("ミックス意図", Object.keys(hints).length ? keyValues(hints) : `<p class="card-copy">選択中のframeにmix hintsがありません。</p>`);
+}
+
 function renderStepGrid(generatedBar) {
   const labels = { kick: "K", snare: "S", hat: "H", ghost: "G", fill: "F", crash: "C" };
   return [...Array(16).keys()].map((step) => {
@@ -102,6 +137,7 @@ function renderStepGrid(generatedBar) {
 function renderPreviewView(profile, state) {
   const controls = state.controlState.controls;
   const sections = sectionOptions(profile);
+  const frame = state.currentFrame || activePatternFrame(state, profile);
   const bar = state.currentBar;
   const decision = state.currentDecision;
   const stats = bar.stats;
@@ -122,6 +158,7 @@ function renderPreviewView(profile, state) {
       <div class="control-grid">
         <label class="control-field"><span>section <strong>${escapeHtml(controls.section)}</strong></span><select data-control="section">${sections.map((section) => `<option value="${escapeHtml(section)}"${section === controls.section ? " selected" : ""}>${escapeHtml(section)}</option>`).join("")}</select></label>
         <label class="control-field"><span>kit <strong>${escapeHtml(kitPresets[controls.kit].label)}</strong></span><select data-control="kit">${Object.entries(kitPresets).map(([id, kit]) => `<option value="${escapeHtml(id)}"${id === controls.kit ? " selected" : ""}>${escapeHtml(kit.label)}</option>`).join("")}</select></label>
+        <label class="control-field"><span>pattern frame <strong>${escapeHtml(frame?.label || "auto")}</strong></span><select data-control="frame">${(state.patternFrames || []).map((item) => `<option value="${escapeHtml(item.id)}"${item.id === frame?.id ? " selected" : ""}>${escapeHtml(item.label)}</option>`).join("")}</select></label>
         <label class="control-field"><span>AI mode <strong>${escapeHtml(controls.aiMode)}</strong></span><select data-control="aiMode"><option value="follow"${controls.aiMode === "follow" ? " selected" : ""}>follow</option><option value="lead"${controls.aiMode === "lead" ? " selected" : ""}>lead</option><option value="lock"${controls.aiMode === "lock" ? " selected" : ""}>lock</option></select></label>
         ${controlRange("bpm", "BPM", controls, 54, 190)}
         ${controlRange("energy", "energy", controls, 0, 100)}
@@ -136,6 +173,8 @@ function renderPreviewView(profile, state) {
         ${controlToggle("inputLock", "input lock", controls)}
         ${controlToggle("midiEnabled", "MIDI send", controls)}
       </div>`, true)}
+    ${renderPatternFrameSummary(frame)}
+    ${renderMixHints(frame)}
     ${card("16 step generated bar", `<div class="step-grid">${renderStepGrid(bar)}</div>`, true)}
     ${card("AI判断", `
       ${meter("space", decision.spaceIntent, `${Math.round(decision.spaceIntent * 100)}% / 間`) }
@@ -164,6 +203,7 @@ function renderPreviewView(profile, state) {
       density: `${Math.round(stats.densityScore * 100)}%`,
       fill_probability: `${Math.round(stats.fillChance * 100)}%`,
       fill_slots: stats.fillSlots.join(", ") || "none",
+      pattern_frame: stats.frameLabel,
       kit: kitPresets[controls.kit].label,
       variation_seed: controls.variationSeed
     }))}
@@ -191,7 +231,7 @@ function renderPolicyView(profile) {
 function renderManualView() {
   return `<div class="grid">
     ${card("使い方マニュアル", `<ol class="manual-list">
-      <li>style profileを選ぶ。</li><li><strong>AI Live Groove Co-player</strong>で再生する。</li><li>energy/space/lift/risk/fill demandで、間と爆発の量を決める。</li><li><strong>音入力を有効化</strong>すると、ローカルfeaturesだけでAI followに反映する。</li><li>必要ならMIDI接続で外部音源へ送る。</li><li>危ない時は<strong>緊急停止</strong>。</li></ol>`, true)}
+      <li>style profileを選ぶ。</li><li><strong>AI Live Groove Co-player</strong>で再生する。</li><li>pattern frameで中のドラマーのポケットを選ぶ。</li><li>energy/space/lift/risk/fill demandで、間と爆発の量を決める。</li><li><strong>音入力を有効化</strong>すると、ローカルfeaturesだけでAI followに反映する。</li><li>必要ならMIDI接続で外部音源へ送る。</li><li>危ない時は<strong>緊急停止</strong>。</li></ol>`, true)}
     ${card("できること", chipList(["rule-based AI共演", "間/溜め/発火/回収", "local audio feature follow", "Web MIDI optional output", "live mode", "listening harness"]))}
     ${card("まだやらないこと", chipList(["録音", "音声アップロード", "外部AI API", "サンプル再生", "MIDI file export", "VCV自動操作"], "token"))}
   </div>`;
@@ -200,8 +240,9 @@ function renderManualView() {
 function renderStatusView(state) {
   return `<div class="grid">
     ${card("公開状態", keyValues({ pages_source: "main + /(root)", pages_url: "https://quietbriony.github.io/drum-floor/", entry_file: "index.html", app_entry: "app.js type=module" }))}
-    ${card("読み込み状態", keyValues({ json_status: state.loadStatus, profile_version: state.version ?? "unknown", profile_count: state.profiles.length }))}
+    ${card("読み込み状態", keyValues({ json_status: state.loadStatus, profile_version: state.version ?? "unknown", profile_count: state.profiles.length, pattern_frame_version: state.patternVersion ?? "unknown", pattern_frame_count: state.patternFrames.length }))}
     ${card("policy flags", keyValues(state.policy || {}))}
+    ${card("pattern frame policy", keyValues(state.patternPolicy || {}))}
     ${card("runtime boundary", chipList(["rule-based AI only", "local audio features", "no dependencies", "no samples", "optional Web MIDI"], "token"))}
     ${card("開発用リンク", `<div class="token-row">${docs.map(([label, href]) => `<a class="token" href="${href}">${label}</a>`).join("")}</div>`, true)}
   </div>`;

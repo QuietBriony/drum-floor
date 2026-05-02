@@ -21,6 +21,7 @@
 - `style.css` / `app.js` / `src/` : 依存なしの日本語静的 UI と native ES modules
 - `drum_floor/` : OpenClawから将来呼ぶための live candidate CLI
 - `live/` : candidates / armed / archive / logs の安全なlive作業境界
+- `patterns/` : style profileとは別に使う drum pattern frame / Pocket Director 定義
 - `docs/ops/` : ライブ運用・事故対応
 - `docs/patches/` : パッチ仕様（モジュール表/配線図）
 - `docs/groove/` : グルーヴ理論/生成ルール
@@ -29,6 +30,7 @@
 - `docs/groove-profile-schema.md` : drum-floor の band groove profile スキーマ
 - `docs/input-output-example.md` : profile 入力→ドラム出力の例
 - `profiles/groove-profiles.json` : 初期 style profiles 定義
+- `patterns/drum-pattern-frames.json` : pocket-aware drum pattern frames
 
 ## Safety
 - mainブランチは常に「鳴る」状態を維持
@@ -42,6 +44,15 @@
 - CLI/OpenClaw は `live/candidates/`, `live/logs/`, 明示した生成 `--out` のみへ書き込む
 - CLI/OpenClaw は `live/armed/` を自動上書きせず、Ableton project files や EP-133 device state を直接変更しない
 - サンプル/audio filesは保存・追加しない
+- 自動生成枠はまず JSON / MIDI / Web Audio 合成音で育て、通常の音源再生や外部kit参照は後続の `audio_source_profile` 契約で扱う
+
+## Drum pattern frames
+
+`patterns/drum-pattern-frames.json` defines reusable pocket-aware pattern frames.
+
+These frames are not sample packs or copied loops. They describe how an internal Pocket Director should handle space, snare lag, kick push, ghost-note glue, bass lock, and mix hints before the generator compiles a bar.
+
+See `docs/drum-pattern-frame-contract.md` for the contract and future CLI/UI connection points.
 
 ## Live candidate CLI
 
@@ -49,6 +60,12 @@ Preferred command name:
 
 ```bash
 python -m drum_floor generate --style mixture_shout --bpm 126 --bars 4 --energy 72 --seed 42 --out live/candidates/seed-42
+```
+
+Use an explicit Pocket Director frame when needed:
+
+```bash
+python -m drum_floor generate --style nerdy_jazzy_hiphop --frame deep_neo_soul_pocket --bpm 84 --bars 8 --energy 55 --seed 42 --out live/candidates/pocket-seed-42
 ```
 
 The command writes exactly:

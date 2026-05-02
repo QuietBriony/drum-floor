@@ -37,8 +37,11 @@ def _u32(value: int) -> bytes:
     return value.to_bytes(4, "big")
 
 
-def _event_tick(event: dict[str, Any]) -> int:
-    return int(event["bar"]) * STEPS_PER_BAR * TICKS_PER_STEP + int(event["step"]) * TICKS_PER_STEP
+def _event_tick(event: dict[str, Any], bpm: int) -> int:
+    base_tick = int(event["bar"]) * STEPS_PER_BAR * TICKS_PER_STEP + int(event["step"]) * TICKS_PER_STEP
+    micro_offset_ms = float(event.get("micro_offset_ms", 0))
+    micro_ticks = round(micro_offset_ms * TICKS_PER_QUARTER * bpm / 60_000)
+    return max(0, base_tick + micro_ticks)
 
 
 def write_midi(path: Path, events: list[dict[str, Any]], bpm: int) -> None:
@@ -48,7 +51,7 @@ def write_midi(path: Path, events: list[dict[str, Any]], bpm: int) -> None:
         (0, b"\xff\x58\x04\x04\x02\x18\x08"),
     ]
     for event in events:
-        tick = _event_tick(event)
+        tick = _event_tick(event, bpm)
         note = int(event["note"])
         velocity = int(event["velocity"])
         duration = max(1, int(event.get("duration_steps", 1))) * TICKS_PER_STEP

@@ -24,6 +24,7 @@ def build_parser() -> argparse.ArgumentParser:
     generate.add_argument("--bars", required=True, type=int, help="Number of 4/4 bars, 1-128.")
     generate.add_argument("--energy", required=True, type=int, help="Energy amount, 0-100.")
     generate.add_argument("--seed", required=True, type=int, help="Deterministic generation seed.")
+    generate.add_argument("--frame", help="Optional drum pattern frame id from patterns/drum-pattern-frames.json.")
     generate.add_argument("--out", required=True, type=Path, help="Output directory for the fixed candidate files.")
     inspect = subparsers.add_parser(
         "inspect",
@@ -43,6 +44,7 @@ def main(argv: list[str] | None = None) -> int:
             bars=args.bars,
             energy=args.energy,
             seed=args.seed,
+            frame=args.frame,
             out=args.out,
         )
         try:
@@ -54,6 +56,7 @@ def main(argv: list[str] | None = None) -> int:
                 "bars": request.bars,
                 "energy": request.energy,
                 "seed": request.seed,
+                "frame": request.frame,
                 "out": str(request.out),
                 "error": str(error),
             })
@@ -67,11 +70,13 @@ def main(argv: list[str] | None = None) -> int:
             "bars": request.bars,
             "energy": request.energy,
             "seed": request.seed,
+            "frame": result.frame_id,
             "out": str(result.out_dir),
             "outputs": [path.name for path in result.files],
         })
         print(f"generated: {result.out_dir}")
         print(f"candidate: {result.candidate_id}")
+        print(f"frame: {result.frame_id}")
         for path in result.files:
             print(f"- {path.name}")
         print(f"log: {log_path}")
@@ -81,7 +86,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"candidate: {result.summary.get('candidate_id') or '-'}")
         print(f"directory: {result.candidate_dir}")
         print(f"ok: {str(result.ok).lower()}")
-        for key in ("style", "bpm", "bars", "energy", "seed", "event_count"):
+        for key in ("style", "frame", "bpm", "bars", "energy", "seed", "event_count"):
             if key in result.summary:
                 print(f"{key}: {result.summary[key]}")
         for warning in result.warnings:

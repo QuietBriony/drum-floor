@@ -1,0 +1,501 @@
+{
+  "version": 1,
+  "policy": {
+    "stores_audio": false,
+    "stores_samples": false,
+    "stores_metadata_only": true,
+    "purpose": "reusable drum pattern frame and pocket direction metadata, not copying recordings, songs, or artist performances",
+    "audio_direction": "web audio synthesis and midi first"
+  },
+  "director_contract": {
+    "flow": [
+      "style_profile",
+      "manual_intent",
+      "pocket_director",
+      "pattern_frame",
+      "generated_bar"
+    ],
+    "units": {
+      "space": "0.0 to 1.0",
+      "snare_lag_ms": "milliseconds behind grid",
+      "kick_push_ms": "milliseconds ahead of grid when negative",
+      "ghost_glue": "0.0 to 1.0",
+      "hat_swing": "0.0 to 1.0",
+      "mix_hints": "renderer-facing tone and balance suggestions"
+    },
+    "output_targets": [
+      "pattern.json",
+      "meta.json",
+      "browser_preview",
+      "drums.mid"
+    ]
+  },
+  "frames": [
+    {
+      "id": "deep_neo_soul_pocket",
+      "label": "Deep Neo-Soul Pocket",
+      "description": "A behind-the-beat, bass-aware pocket with quiet authority, ghost-note glue, and intentional negative space.",
+      "style_affinity": [
+        "nerdy_jazzy_hiphop",
+        "dubby_half_time"
+      ],
+      "feel_tags": [
+        "laid_back",
+        "ghost_glue",
+        "bass_lock",
+        "negative_space",
+        "soft_snap"
+      ],
+      "section_fit": {
+        "intro": "medium",
+        "verse": "high",
+        "chorus": "medium",
+        "bridge": "high",
+        "end": "low"
+      },
+      "pocket_director": {
+        "space": 0.72,
+        "snare_lag_ms": 18,
+        "kick_push_ms": -4,
+        "ghost_glue": 0.86,
+        "hat_swing": 0.7,
+        "bass_lock": "follow low-end accents without doubling every bass note",
+        "mix_hints": {
+          "kick_weight": "round_low_mid",
+          "snare_body": "soft_center_with_late_snap",
+          "hat_brightness": "dark_tight",
+          "room": "close_dry_with_short_air",
+          "crash_distance": "far_and_sparse"
+        }
+      },
+      "structure_template": {
+        "kick": [
+          {
+            "step": 0,
+            "role": "anchor"
+          },
+          {
+            "step": 10,
+            "role": "bass_answer"
+          }
+        ],
+        "snare": [
+          {
+            "step": 4,
+            "role": "laid_back_backbeat"
+          },
+          {
+            "step": 12,
+            "role": "laid_back_backbeat"
+          }
+        ],
+        "hat": [
+          {
+            "step": "even_8ths",
+            "role": "timekeeper_with_air"
+          }
+        ],
+        "ghost": [
+          {
+            "step": 7,
+            "role": "glue"
+          },
+          {
+            "step": 15,
+            "role": "pickup_whisper"
+          }
+        ],
+        "fill": [
+          {
+            "step": 14,
+            "role": "short_conversation"
+          }
+        ],
+        "crash": [
+          {
+            "step": 0,
+            "role": "rare_section_entry"
+          }
+        ]
+      },
+      "avoid": [
+        "constant_16th_hat",
+        "snare_on_top_of_grid",
+        "fill_every_turnaround",
+        "artist_or_song_copying"
+      ]
+    },
+    {
+      "id": "riff_shout_floor",
+      "label": "Riff Shout Floor",
+      "description": "A hard band floor that supports shouted vocals and guitar riffs without letting fills crowd the vocal attack.",
+      "style_affinity": [
+        "mixture_shout",
+        "rock_heavy"
+      ],
+      "feel_tags": [
+        "forward",
+        "riff_lock",
+        "strong_backbeat",
+        "section_lift"
+      ],
+      "section_fit": {
+        "intro": "high",
+        "verse": "medium",
+        "chorus": "high",
+        "bridge": "medium",
+        "end": "high"
+      },
+      "pocket_director": {
+        "space": 0.34,
+        "snare_lag_ms": 3,
+        "kick_push_ms": -8,
+        "ghost_glue": 0.28,
+        "hat_swing": 0.18,
+        "bass_lock": "reinforce riff landings and leave room before vocal shouts",
+        "mix_hints": {
+          "kick_weight": "tight_punch",
+          "snare_body": "firm_mid_crack",
+          "hat_brightness": "bright_controlled",
+          "room": "short_stage",
+          "crash_distance": "near_section_marker"
+        }
+      },
+      "structure_template": {
+        "kick": [
+          {
+            "step": 0,
+            "role": "floor_anchor"
+          },
+          {
+            "step": 8,
+            "role": "riff_reinforce"
+          }
+        ],
+        "snare": [
+          {
+            "step": 4,
+            "role": "backbeat"
+          },
+          {
+            "step": 12,
+            "role": "backbeat"
+          }
+        ],
+        "hat": [
+          {
+            "step": "steady_8ths",
+            "role": "drive"
+          }
+        ],
+        "ghost": [
+          {
+            "step": 11,
+            "role": "pre_backbeat_hint"
+          }
+        ],
+        "fill": [
+          {
+            "step": 13,
+            "role": "short_pre_shout"
+          }
+        ],
+        "crash": [
+          {
+            "step": 0,
+            "role": "chorus_entry"
+          }
+        ]
+      },
+      "avoid": [
+        "busy_ghost_layer",
+        "late_backbeat_drag",
+        "long_fill_under_vocal"
+      ]
+    },
+    {
+      "id": "live_break_pressure",
+      "label": "Live Break Pressure",
+      "description": "A live breakbeat frame with bar-to-bar velocity movement, chopped pressure, and controlled fill rarity.",
+      "style_affinity": [
+        "breakbeat_live",
+        "nerdy_jazzy_hiphop"
+      ],
+      "feel_tags": [
+        "live_break",
+        "velocity_variation",
+        "syncopated",
+        "phrase_pressure"
+      ],
+      "section_fit": {
+        "intro": "medium",
+        "verse": "high",
+        "chorus": "high",
+        "bridge": "high",
+        "end": "medium"
+      },
+      "pocket_director": {
+        "space": 0.48,
+        "snare_lag_ms": 7,
+        "kick_push_ms": -5,
+        "ghost_glue": 0.64,
+        "hat_swing": 0.5,
+        "bass_lock": "answer syncopated bass with alternating anchor and provocation",
+        "mix_hints": {
+          "kick_weight": "punch_with_short_tail",
+          "snare_body": "dry_snap_with_ghost_floor",
+          "hat_brightness": "dirty_mid",
+          "room": "small_break_room",
+          "crash_distance": "wide_but_rare"
+        }
+      },
+      "structure_template": {
+        "kick": [
+          {
+            "step": 0,
+            "role": "anchor"
+          },
+          {
+            "step": 3,
+            "role": "skip_push"
+          },
+          {
+            "step": 10,
+            "role": "answer"
+          }
+        ],
+        "snare": [
+          {
+            "step": 4,
+            "role": "backbeat"
+          },
+          {
+            "step": 11,
+            "role": "syncopated_lift"
+          },
+          {
+            "step": 12,
+            "role": "backbeat"
+          }
+        ],
+        "hat": [
+          {
+            "step": "broken_16ths",
+            "role": "chopped_timekeeper"
+          }
+        ],
+        "ghost": [
+          {
+            "step": 6,
+            "role": "drag"
+          },
+          {
+            "step": 15,
+            "role": "pickup"
+          }
+        ],
+        "fill": [
+          {
+            "step": 12,
+            "role": "rare_live_turnaround"
+          }
+        ],
+        "crash": [
+          {
+            "step": 0,
+            "role": "phrase_separator"
+          }
+        ]
+      },
+      "avoid": [
+        "uniform_velocity",
+        "fill_on_every_2_bars",
+        "fully_quantized_break"
+      ]
+    },
+    {
+      "id": "dub_space_lift",
+      "label": "Dub Space Lift",
+      "description": "A sparse half-time frame where silence, delayed weight, and crash restraint create lift.",
+      "style_affinity": [
+        "dubby_half_time",
+        "nerdy_jazzy_hiphop"
+      ],
+      "feel_tags": [
+        "half_time",
+        "deep_space",
+        "sub_weight",
+        "delayed_release"
+      ],
+      "section_fit": {
+        "intro": "high",
+        "verse": "high",
+        "chorus": "medium",
+        "bridge": "high",
+        "end": "high"
+      },
+      "pocket_director": {
+        "space": 0.84,
+        "snare_lag_ms": 14,
+        "kick_push_ms": 0,
+        "ghost_glue": 0.24,
+        "hat_swing": 0.36,
+        "bass_lock": "leave sub gaps and only answer the strongest bass pressure",
+        "mix_hints": {
+          "kick_weight": "deep_sub_round",
+          "snare_body": "wide_low_mid",
+          "hat_brightness": "dark_sparse",
+          "room": "long_tail_implied_not_sampled",
+          "crash_distance": "very_far"
+        }
+      },
+      "structure_template": {
+        "kick": [
+          {
+            "step": 0,
+            "role": "deep_anchor"
+          },
+          {
+            "step": 9,
+            "role": "sub_answer"
+          }
+        ],
+        "snare": [
+          {
+            "step": 8,
+            "role": "half_time_backbeat"
+          }
+        ],
+        "hat": [
+          {
+            "step": "sparse_8ths",
+            "role": "air_marker"
+          }
+        ],
+        "ghost": [
+          {
+            "step": 15,
+            "role": "barely_there_pickup"
+          }
+        ],
+        "fill": [
+          {
+            "step": 14,
+            "role": "short_sub_roll"
+          }
+        ],
+        "crash": [
+          {
+            "step": 0,
+            "role": "rare_lift"
+          }
+        ]
+      },
+      "avoid": [
+        "busy_hat",
+        "dense_fill",
+        "bright_constant_crash"
+      ]
+    },
+    {
+      "id": "jazzy_ghost_glue",
+      "label": "Jazzy Ghost Glue",
+      "description": "A soft, intelligent frame that connects bass and vocal phrasing through ghost notes and small hat choices.",
+      "style_affinity": [
+        "nerdy_jazzy_hiphop",
+        "breakbeat_live"
+      ],
+      "feel_tags": [
+        "soft_comping",
+        "ghost_texture",
+        "small_answers",
+        "late_accent"
+      ],
+      "section_fit": {
+        "intro": "medium",
+        "verse": "high",
+        "chorus": "medium",
+        "bridge": "high",
+        "end": "medium"
+      },
+      "pocket_director": {
+        "space": 0.62,
+        "snare_lag_ms": 11,
+        "kick_push_ms": -2,
+        "ghost_glue": 0.9,
+        "hat_swing": 0.76,
+        "bass_lock": "shadow bass contour with soft kick answers and leave vocal pockets open",
+        "mix_hints": {
+          "kick_weight": "soft_round_clickless",
+          "snare_body": "rim_soft_snap",
+          "hat_brightness": "brushed_dark",
+          "room": "dry_intimate",
+          "crash_distance": "ride_like_sparse"
+        }
+      },
+      "structure_template": {
+        "kick": [
+          {
+            "step": 0,
+            "role": "soft_anchor"
+          },
+          {
+            "step": 6,
+            "role": "bass_shadow"
+          },
+          {
+            "step": 10,
+            "role": "answer"
+          }
+        ],
+        "snare": [
+          {
+            "step": 4,
+            "role": "soft_backbeat"
+          },
+          {
+            "step": 12,
+            "role": "soft_backbeat"
+          }
+        ],
+        "hat": [
+          {
+            "step": "swung_8ths_with_16th_pickups",
+            "role": "texture"
+          }
+        ],
+        "ghost": [
+          {
+            "step": 3,
+            "role": "lead_in"
+          },
+          {
+            "step": 7,
+            "role": "glue"
+          },
+          {
+            "step": 15,
+            "role": "pickup"
+          }
+        ],
+        "fill": [
+          {
+            "step": 13,
+            "role": "jazzy_short_answer"
+          }
+        ],
+        "crash": [
+          {
+            "step": 0,
+            "role": "selective_entry"
+          }
+        ]
+      },
+      "avoid": [
+        "hard_rock_backbeat",
+        "constant_kick_doubling",
+        "overbright_hat"
+      ]
+    }
+  ]
+}

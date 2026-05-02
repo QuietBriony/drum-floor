@@ -18,7 +18,7 @@
 
 ## Files
 - `index.html` : GitHub Pages 用の profile UI
-- `style.css` / `app.js` : 依存なしの日本語静的 UI
+- `style.css` / `app.js` / `src/` : 依存なしの日本語静的 UI と native ES modules
 - `docs/ops/` : ライブ運用・事故対応
 - `docs/patches/` : パッチ仕様（モジュール表/配線図）
 - `docs/groove/` : グルーヴ理論/生成ルール
@@ -35,4 +35,6 @@
 - Pages UI は profile確認、使い方確認、開発状況把握のための入口として使う
 - ブラウザ音生成と音入力予測は将来実装対象だが、最初は合成音・ルールベース・手動停止を前提にする
 - Pages UI の自動生成プレビューは Web Audio 合成音のみを使い、BPM/tap/section/kit/energy/density/swing/humanize を手動操作できる
+- AI co-player はまず rule-based。外部AI API、音声送信、録音保存はしない
+- 音入力は `getUserMedia` のローカルfeatures解析のみ。permission拒否時はmanual modeへ戻る
 - サンプル/audio filesは保存・追加しない

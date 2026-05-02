@@ -486,6 +486,11 @@ code {
   color: var(--coal);
 }
 
+.preview-button.danger {
+  background: var(--brick);
+  border-color: var(--brick);
+}
+
 .preview-state {
   color: var(--muted);
   font-family: "Trebuchet MS", "Yu Gothic", sans-serif;
@@ -520,6 +525,10 @@ code {
   color: var(--coal);
 }
 
+.toggle-field {
+  align-content: space-between;
+}
+
 .control-field input,
 .control-field select {
   accent-color: var(--brick);
@@ -529,6 +538,12 @@ code {
   min-width: 0;
   padding: 9px 10px;
   width: 100%;
+}
+
+.control-field input[type="checkbox"] {
+  justify-self: start;
+  min-height: 22px;
+  width: auto;
 }
 
 .reason-meter {
@@ -593,6 +608,36 @@ code {
 .step-cell.has-hit {
   background: rgba(169, 72, 50, 0.12);
   border-color: rgba(169, 72, 50, 0.28);
+}
+
+.live-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+}
+
+.live-controls .preview-button {
+  min-width: 96px;
+}
+
+.score-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  margin-bottom: 14px;
+}
+
+.score-button {
+  background: rgba(201, 147, 59, 0.12);
+  border: 1px solid rgba(201, 147, 59, 0.34);
+  color: var(--coal);
+  cursor: pointer;
+  font-family: "Trebuchet MS", "Yu Gothic", sans-serif;
+  font-weight: 700;
+  padding: 9px 10px;
+}
+
+.score-button.is-scored {
+  background: var(--moss);
+  color: var(--paper-strong);
 }
 
 @media (max-width: 920px) {

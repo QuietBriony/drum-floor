@@ -32,6 +32,55 @@ function defaultDuration(part) {
   return 0.1;
 }
 
+function templateSteps(stepValue) {
+  if (Number.isInteger(stepValue)) return [stepValue];
+  const mapping = {
+    even_8ths: [0, 4, 8, 12],
+    steady_8ths: [0, 4, 8, 12],
+    sparse_8ths: [0, 8, 12],
+    broken_16ths: [0, 3, 4, 7, 10, 12, 14],
+    swung_8ths_with_16th_pickups: [0, 3, 4, 7, 8, 11, 12, 15]
+  };
+  return mapping[String(stepValue)] || [];
+}
+
+function directorValue(director, key, fallback = 0) {
+  const value = Number(director?.[key]);
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function frameOffset(part, step, director) {
+  const snareLag = directorValue(director, "snare_lag_ms");
+  const kickPush = directorValue(director, "kick_push_ms");
+  const hatSwing = clamp(directorValue(director, "hat_swing"), 0, 1);
+  if (part === "kick") return kickPush;
+  if (part === "snare" || part === "fill") return snareLag;
+  if (part === "ghost") return Math.round(snareLag * 0.7);
+  if (part === "hat" && step % 4 !== 0) return Math.round(hatSwing * 8);
+  return 0;
+}
+
+function applyPatternFrame(events, patternFrame, context) {
+  if (!patternFrame?.structure_template) return;
+  const director = patternFrame.pocket_director || {};
+  Object.entries(patternFrame.structure_template).forEach(([part, entries]) => {
+    if (!Array.isArray(entries)) return;
+    if (part === "fill" && !context.fillActive) return;
+    if (part === "crash" && !context.crashAllowed) return;
+    entries.forEach((entry) => {
+      templateSteps(entry.step).forEach((step) => {
+        addEvent(events, {
+          step,
+          part,
+          velocity: context.velocityBase(part),
+          microOffsetMs: frameOffset(part, step, director),
+          reason: `frame:${patternFrame.id}:${entry.role || "shape"}`
+        });
+      });
+    });
+  });
+}
+
 function fillSlots(profile, controls, decision, stats, rng) {
   if (stats.fillBudget <= 0) return [];
   const weighted = [...Array(8).keys()].map((bar) => ({
@@ -58,8 +107,8 @@ export function buildGenerationStats(profile, controls, decision) {
   return { sectionDensity, profileDensity, densityScore, ghostScore, fillChance, fillBudget, sectionPriority, maxFills, swingMs, humanizeMs };
 }
 
-export function generateGrooveBar(profile, controls, decision, memory) {
-  const rng = seededRng([profile.id, controls.section, controls.kit, controls.variationSeed, memory.barIndex, decision.phraseAction, controls.risk, controls.space, controls.lift]);
+export function generateGrooveBar(profile, controls, decision, memory, patternFrame = null) {
+  const rng = seededRng([profile.id, patternFrame?.id || "no-frame", controls.section, controls.kit, controls.variationSeed, memory.barIndex, decision.phraseAction, controls.risk, controls.space, controls.lift]);
   const stats = buildGenerationStats(profile, controls, decision);
   const events = [];
   const barInPhrase = memory.barIndex % 8;
@@ -74,14 +123,32 @@ export function generateGrooveBar(profile, controls, decision, memory) {
   const recover = decision.phraseAction === "recover";
   const space = decision.phraseAction === "space";
   const velocityBase = decision.velocityScalar;
+  const director = patternFrame?.pocket_director || {};
+  const directorSpace = clamp(directorValue(director, "space", 0.4), 0, 1);
+  const snareLagMs = Math.round(directorValue(director, "snare_lag_ms"));
+  const kickPushMs = Math.round(directorValue(director, "kick_push_ms", -3));
+  const ghostGlue = clamp(directorValue(director, "ghost_glue"), 0, 1);
+  const hatSwing = clamp(directorValue(director, "hat_swing"), 0, 1);
+  stats.densityScore = clamp(stats.densityScore * (1 - directorSpace * 0.14) + (1 - directorSpace) * 0.06, 0.05, 1);
+  stats.ghostScore = clamp(Math.max(stats.ghostScore, ghostGlue * 0.72), 0, 1);
 
-  addEvent(events, { step: 0, part: "kick", velocity: (0.78 + energy * 0.2) * velocityBase, microOffsetMs: -3, reason: "downbeat anchor" });
-  addEvent(events, { step: isHalfTime ? 8 : 4, part: "snare", velocity: (0.72 + energy * 0.22) * velocityBase, microOffsetMs: decision.spaceIntent > 0.5 ? 5 : 1, reason: isHalfTime ? "half-time backbeat" : "backbeat" });
-  if (!isHalfTime && !space) addEvent(events, { step: 12, part: "snare", velocity: (0.74 + energy * 0.2) * velocityBase, reason: "backbeat return" });
+  const frameFillActive = (decision.fillIntent > 0.46 && barInPhrase >= 6) || explode;
+  applyPatternFrame(events, patternFrame, {
+    fillActive: frameFillActive,
+    crashAllowed: controls.crashGate && (barInPhrase === 0 || barInPhrase === 7 || explode || recover),
+    velocityBase: (part) => {
+      const base = { kick: 0.72, snare: 0.68, hat: 0.28, ghost: 0.18, fill: 0.48, crash: 0.55 }[part] || 0.4;
+      return base + energy * 0.22 + stats.densityScore * 0.08;
+    }
+  });
 
-  if ((density > 0.32 || isHeavy) && !preLift) addEvent(events, { step: 8, part: "kick", velocity: 0.52 + energy * 0.26, reason: "mid-bar anchor" });
-  if ((density > 0.52 || isBreakbeat) && !space) addEvent(events, { step: rng() > 0.45 ? 10 : 11, part: "kick", velocity: 0.38 + density * 0.3, reason: "density response" });
-  if ((density > 0.68 || profile.id === "mixture_shout") && !preLift) addEvent(events, { step: rng() > 0.5 ? 7 : 15, part: "kick", velocity: 0.36 + energy * 0.26, reason: "riff pickup" });
+  addEvent(events, { step: 0, part: "kick", velocity: (0.78 + energy * 0.2) * velocityBase, microOffsetMs: kickPushMs, reason: "downbeat anchor" });
+  addEvent(events, { step: isHalfTime ? 8 : 4, part: "snare", velocity: (0.72 + energy * 0.22) * velocityBase, microOffsetMs: snareLagMs || (decision.spaceIntent > 0.5 ? 5 : 1), reason: isHalfTime ? "half-time backbeat" : "backbeat" });
+  if (!isHalfTime && !space) addEvent(events, { step: 12, part: "snare", velocity: (0.74 + energy * 0.2) * velocityBase, microOffsetMs: snareLagMs, reason: "backbeat return" });
+
+  if ((density > 0.32 || isHeavy) && !preLift) addEvent(events, { step: 8, part: "kick", velocity: 0.52 + energy * 0.26, microOffsetMs: kickPushMs, reason: "mid-bar anchor" });
+  if ((density > 0.52 || isBreakbeat) && !space) addEvent(events, { step: rng() > 0.45 ? 10 : 11, part: "kick", velocity: 0.38 + density * 0.3, microOffsetMs: kickPushMs, reason: "density response" });
+  if ((density > 0.68 || profile.id === "mixture_shout") && !preLift) addEvent(events, { step: rng() > 0.5 ? 7 : 15, part: "kick", velocity: 0.36 + energy * 0.26, microOffsetMs: kickPushMs, reason: "riff pickup" });
   if (isPocket && rng() > 0.3 && !explode) addEvent(events, { step: rng() > 0.5 ? 3 : 6, part: "kick", velocity: 0.34, microOffsetMs: 5, reason: "soft displacement" });
   if (isBreakbeat && !space) {
     addEvent(events, { step: 3, part: "kick", velocity: 0.44 + rng() * 0.18, reason: "breakbeat stagger" });
@@ -95,13 +162,13 @@ export function generateGrooveBar(profile, controls, decision, memory) {
   if (preLift) hatSteps = [0, 4, 8];
   hatSteps.forEach((step) => {
     const accent = step % 4 === 0 ? 0.2 : 0;
-    const microOffsetMs = step % 4 === 2 ? stats.swingMs : 0;
+    const microOffsetMs = step % 4 === 2 ? stats.swingMs + Math.round(hatSwing * 8) : Math.round(hatSwing * 3);
     addEvent(events, { step, part: "hat", velocity: 0.2 + density * 0.24 + accent + (rng() - 0.5) * 0.1, microOffsetMs, reason: preLift ? "pre-lift gap timekeeper" : "timekeeper" });
   });
 
   const ghostCandidates = isBreakbeat ? [2, 5, 6, 9, 13, 14] : isPocket ? [3, 5, 7, 11, 13] : [5, 11, 13];
   ghostCandidates.forEach((step) => {
-    if (!preLift && rng() < stats.ghostScore * (isPocket ? 0.7 : 0.48)) addEvent(events, { step, part: "ghost", velocity: 0.16 + rng() * 0.24, microOffsetMs: stats.humanizeMs / 2, reason: "human pocket texture" });
+    if (!preLift && rng() < stats.ghostScore * (isPocket ? 0.7 : 0.48)) addEvent(events, { step, part: "ghost", velocity: 0.16 + rng() * 0.24, microOffsetMs: stats.humanizeMs / 2 + Math.round(snareLagMs * 0.5), reason: "human pocket texture" });
   });
 
   const slots = fillSlots(profile, controls, decision, stats, rng);
@@ -109,7 +176,7 @@ export function generateGrooveBar(profile, controls, decision, memory) {
   if (fillActive) {
     const longFill = profile.fill_policy?.types?.includes("long") && (energy > 0.6 || isBreakbeat || explode);
     const fillSteps = longFill ? [11, 12, 13, 14, 15] : [14, 15];
-    fillSteps.forEach((step, index) => addEvent(events, { step, part: "fill", velocity: 0.38 + energy * 0.34 + index * 0.045, microOffsetMs: index % 2 ? stats.humanizeMs : -stats.humanizeMs / 2, reason: longFill ? "long transition fill" : "rare transition fill" }));
+    fillSteps.forEach((step, index) => addEvent(events, { step, part: "fill", velocity: 0.38 + energy * 0.34 + index * 0.045, microOffsetMs: snareLagMs + (index % 2 ? stats.humanizeMs : -stats.humanizeMs / 2), reason: longFill ? "long transition fill" : "rare transition fill" }));
   }
 
   const crashNow = controls.crashGate && (explode || decision.crashIntent > 0.74 && (barInPhrase === 0 || barInPhrase === 7));
@@ -121,7 +188,21 @@ export function generateGrooveBar(profile, controls, decision, memory) {
     barIndex: memory.barIndex,
     barInPhrase,
     decision,
-    stats: { ...stats, fillActive, fillSlots: slots, phraseAction: decision.phraseAction },
+    stats: {
+      ...stats,
+      fillActive,
+      fillSlots: slots,
+      phraseAction: decision.phraseAction,
+      frameId: patternFrame?.id || "none",
+      frameLabel: patternFrame?.label || "未選択",
+      pocket: {
+        space: directorSpace,
+        snareLagMs,
+        kickPushMs,
+        ghostGlue,
+        hatSwing
+      }
+    },
     events: events.sort((a, b) => a.step - b.step || partOrder[a.part] - partOrder[b.part])
   };
 }

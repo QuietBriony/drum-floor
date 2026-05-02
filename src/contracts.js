@@ -8,6 +8,7 @@ export const docs = [
   ["音入力予測", "docs/runtime/audio-input-groove-prediction.md"],
   ["VCV/Live連携", "docs/runtime/vcv-and-live-bridge.md"],
   ["Live AIロードマップ", "docs/runtime/live-ai-audio-interface-roadmap.md"],
+  ["Pattern Frame契約", "docs/drum-pattern-frame-contract.md"],
   ["schema", "docs/schema/groove-profiles.schema.json"]
 ];
 
@@ -27,6 +28,18 @@ export const labels = {
   fill_policy: "フィル制御",
   ghost_notes_policy: "ゴーストノート制御",
   section_transition_rules: "セクション遷移ルール",
+  pattern_frame: "ドラムパターン枠",
+  pocket_director: "Pocket Director",
+  mix_hints: "ミックス意図",
+  feel_tags: "フィールタグ",
+  style_affinity: "style相性",
+  section_fit: "セクション適性",
+  space: "間",
+  snare_lag_ms: "スネア遅れ",
+  kick_push_ms: "キック前ノリ",
+  ghost_glue: "ゴースト接着",
+  hat_swing: "ハット揺れ",
+  bass_lock: "ベース追従",
   structure: "構造",
   expression: "表現",
   kick: "キック",
@@ -78,6 +91,7 @@ export const defaultControls = {
   swing: 6,
   humanize: 48,
   kit: "tight_band",
+  frame: "auto",
   variationSeed: 137,
   risk: 52,
   space: 35,
@@ -198,6 +212,7 @@ export function sanitizeControls(controls, profile) {
   next.lift = clamp(Number(next.lift) || 0, 0, 100);
   next.fillDemand = clamp(Number(next.fillDemand) || 0, 0, 100);
   if (!kitPresets[next.kit]) next.kit = "tight_band";
+  if (typeof next.frame !== "string" || !next.frame) next.frame = "auto";
   if (!["follow", "lead", "lock"].includes(next.aiMode)) next.aiMode = "follow";
   next.crashGate = Boolean(next.crashGate);
   next.inputLock = Boolean(next.inputLock);

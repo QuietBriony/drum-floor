@@ -31,8 +31,11 @@ const midiOutput = new MidiOutput();
 
 const state = {
   profiles: [],
+  patternFrames: [],
   policy: null,
+  patternPolicy: null,
   version: null,
+  patternVersion: null,
   activeId: null,
   activeView: "profile",
   loadStatus: "読み込み中",
@@ -49,6 +52,7 @@ const state = {
     timeoutId: null
   },
   currentDecision: null,
+  currentFrame: null,
   currentBar: null,
   midiStatus: midiOutput.snapshot(),
   scores: []
@@ -58,14 +62,32 @@ function activeProfile() {
   return state.profiles.find((profile) => profile.id === state.activeId) || state.profiles[0];
 }
 
+function frameForProfile(profile, requestedId = state.controlState.controls.frame) {
+  if (!state.patternFrames.length) return null;
+  if (requestedId && requestedId !== "auto") {
+    const requested = state.patternFrames.find((frame) => frame.id === requestedId);
+    if (requested) return requested;
+  }
+  return state.patternFrames.find((frame) => frame.style_affinity?.includes(profile?.id)) || state.patternFrames[0];
+}
+
+function syncFrameControl(profile) {
+  const frame = frameForProfile(profile);
+  if (frame && (!state.controlState.controls.frame || state.controlState.controls.frame === "auto")) {
+    state.controlState.controls.frame = frame.id;
+  }
+  return frame;
+}
+
 function updateCurrentBar() {
   const profile = activeProfile();
   if (!profile) return;
   state.controlState.controls = sanitizeControls(state.controlState.controls, profile);
+  state.currentFrame = syncFrameControl(profile);
   state.bandFrame = audioInput.update();
   const manualIntent = createManualIntent(state.controlState.controls);
   state.currentDecision = createGrooveDecision(profile, manualIntent, state.bandFrame, state.memory);
-  state.currentBar = generateGrooveBar(profile, state.controlState.controls, state.currentDecision, state.memory);
+  state.currentBar = generateGrooveBar(profile, state.controlState.controls, state.currentDecision, state.memory, state.currentFrame);
 }
 
 function render() {
@@ -147,15 +169,24 @@ function setActiveView(view) {
 
 async function loadProfiles() {
   try {
-    const response = await fetch("profiles/groove-profiles.json", { cache: "no-store" });
-    if (!response.ok) throw new Error(`profile JSONの取得に失敗しました: ${response.status}`);
-    const data = await response.json();
+    const [profileResponse, frameResponse] = await Promise.all([
+      fetch("profiles/groove-profiles.json", { cache: "no-store" }),
+      fetch("patterns/drum-pattern-frames.json", { cache: "no-store" })
+    ]);
+    if (!profileResponse.ok) throw new Error(`profile JSONの取得に失敗しました: ${profileResponse.status}`);
+    if (!frameResponse.ok) throw new Error(`pattern frame JSONの取得に失敗しました: ${frameResponse.status}`);
+    const data = await profileResponse.json();
+    const frameData = await frameResponse.json();
     state.profiles = data.profiles;
+    state.patternFrames = frameData.frames || [];
     state.policy = data.policy;
+    state.patternPolicy = frameData.policy;
     state.version = data.version;
+    state.patternVersion = frameData.version;
     state.activeId = state.profiles[0]?.id;
     state.loadStatus = "読み込み成功";
     state.controlState.controls = sanitizeControls(state.controlState.controls, activeProfile());
+    state.currentFrame = syncFrameControl(activeProfile());
     render();
   } catch (error) {
     state.loadStatus = "読み込み失敗";
@@ -167,6 +198,7 @@ refs.profileList.addEventListener("click", (event) => {
   const button = event.target.closest("[data-profile-id]");
   if (!button) return;
   state.activeId = button.dataset.profileId;
+  state.controlState.controls.frame = "auto";
   state.memory = { ...state.memory, barIndex: 0, lastPhraseAction: "lock" };
   render();
 });

@@ -1,0 +1,11 @@
+# Keep live runtime artifacts out of git while preserving directory contracts.
+/candidates/*
+!/candidates/.gitkeep
+/logs/*
+!/logs/.gitkeep
+/armed/*
+!/armed/.gitkeep
+/archive/accepted/*
+!/archive/accepted/.gitkeep
+/archive/rejected/*
+!/archive/rejected/.gitkeep

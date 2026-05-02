@@ -1,0 +1,8 @@
+{
+  "schema": "drum-floor.live.state.v1",
+  "armed_candidate": null,
+  "last_generated": null,
+  "last_accepted": null,
+  "last_rejected": null,
+  "notes": "CLI/OpenClaw must not arm candidates automatically; a human moves reviewed candidates into live/armed."
+}

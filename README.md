@@ -85,6 +85,18 @@ Inspect a generated candidate without arming it:
 python -m drum_floor inspect live/candidates/seed-42
 ```
 
+Ableton / EP-133 listening check:
+
+```bash
+python -m drum_floor generate --style nerdy_jazzy_hiphop --frame deep_neo_soul_pocket --bpm 84 --bars 8 --energy 55 --seed 42 --out live/candidates/ableton-ep133-seed-42
+python -m drum_floor inspect live/candidates/ableton-ep133-seed-42
+```
+
+Before sending to EP-133, preview `drums.mid` in Ableton and check the MIDI map:
+
+- `docs/ableton-preview-checklist.md`
+- `docs/ep133-midi-map.md`
+
 Design boundary:
 
 - JSON is source of truth.

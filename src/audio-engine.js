@@ -156,14 +156,27 @@ export class AudioEngine {
     }
   }
 
-  snare(time, velocity, kit, rim = false) {
+  snare(time, velocity, kit, rim = false, articulation = "stick") {
     if (this.isHardBop(kit)) {
       const loudness = Math.min(1.2, Math.max(0.05, velocity));
       const room = kit.snare.room * (0.65 + loudness * 0.55);
+      if (articulation === "brush") {
+        this.acousticNoise(time, kit.snare.rattle * loudness * 0.46, "bandpass", 2600, 0.12, 0.55, room * 0.22);
+        this.acousticNoise(time + 0.018, kit.snare.shell * loudness * 0.34, "highpass", 3900, 0.075, 0.65, room * 0.18);
+        return;
+      }
+      if (articulation === "cross_stick") {
+        this.acousticNoise(time, kit.snare.rim * loudness * 1.4, "bandpass", 1850, 0.042, 4.8, room * 0.2);
+        this.struckTone(time + 0.002, kit.snare.body * loudness * 0.32, 320, 0.052, "square", room * 0.18);
+        return;
+      }
+      if (articulation === "flam_light") {
+        this.snare(time - 0.018, velocity * 0.36, kit, false, "drag");
+      }
       this.acousticNoise(time, kit.snare.stick * loudness, "highpass", 3100 + loudness * 1000, 0.028, 1.6, room * 0.25);
       this.struckTone(time + 0.001, kit.snare.body * loudness, 190 - loudness * 20, 0.11 + loudness * 0.025, "triangle", room);
       this.acousticNoise(time + 0.004, kit.snare.noise * loudness, "bandpass", kit.snare.filter + loudness * 700, kit.snare.decay + loudness * 0.035, 2.4, room);
-      this.acousticNoise(time + 0.012, kit.snare.rattle * loudness, "highpass", 5200 + loudness * 1400, 0.11 + loudness * 0.045, 0.9, room * 0.85);
+      this.acousticNoise(time + 0.012, kit.snare.rattle * loudness * (articulation === "buzz" ? 1.35 : 1), "highpass", 5200 + loudness * 1400, (articulation === "buzz" ? 0.18 : 0.11) + loudness * 0.045, 0.9, room * 0.85);
       this.acousticNoise(time + 0.018, kit.snare.shell * loudness, "bandpass", 620, 0.1, 0.7, room * 0.7);
       if (rim && kit.snare.rim) this.acousticNoise(time + 0.002, kit.snare.rim * loudness, "highpass", 3900, 0.042, 1.2, room * 0.35);
       return;
@@ -179,14 +192,15 @@ export class AudioEngine {
     if (rim && kit.snare.rim) this.noiseHit(time + 0.002, kit.snare.rim * velocity, "highpass", 2400, 0.045, 1.4);
   }
 
-  hat(time, velocity, kit, open = false) {
+  hat(time, velocity, kit, open = false, articulation = "ride_tip") {
     if (this.isHardBop(kit)) {
       const loudness = Math.min(1.2, Math.max(0.04, velocity));
       const decay = open ? kit.hat.open : kit.hat.closed;
       const room = kit.hat.room * (0.7 + loudness * 0.45);
-      this.acousticNoise(time, kit.hat.ride * loudness, "bandpass", 6100 + loudness * 1200, decay + loudness * 0.06, 1.1, room);
+      const bell = articulation === "ride_bell";
+      this.acousticNoise(time, kit.hat.ride * loudness * (bell ? 0.72 : 1), "bandpass", bell ? 4300 : 6100 + loudness * 1200, decay + loudness * (bell ? 0.12 : 0.06), bell ? 5.2 : 1.1, room);
       this.acousticNoise(time + 0.004, kit.hat.clean * loudness, "highpass", kit.hat.filter + loudness * 900, decay * 0.55, 0.65, room * 0.45);
-      if (loudness > 0.48) this.acousticNoise(time + 0.007, kit.hat.bell * loudness, "bandpass", 3800, 0.08, 4.2, room * 0.4);
+      if (loudness > 0.48 || bell) this.acousticNoise(time + 0.007, kit.hat.bell * loudness * (bell ? 1.75 : 1), "bandpass", 3800, bell ? 0.16 : 0.08, 4.2, room * 0.4);
       if (kit.hat.dirty) this.acousticNoise(time + 0.01, kit.hat.dirty * loudness, "bandpass", 2400, decay * 0.8, 0.8, room * 0.3);
       return;
     }
@@ -194,19 +208,26 @@ export class AudioEngine {
     if (kit.hat.dirty) this.noiseHit(time + 0.002, kit.hat.dirty * velocity, "bandpass", kit.hat.filter * 0.62, open ? kit.hat.open * 0.7 : kit.hat.closed * 1.2, 1.8);
   }
 
-  ghost(time, velocity, kit) {
+  ghost(time, velocity, kit, articulation = "brush") {
     if (this.isHardBop(kit)) {
       const soft = Math.min(0.62, Math.max(0.04, velocity));
-      this.acousticNoise(time, kit.snare.rattle * soft * 0.9, "highpass", 4300, 0.055, 0.8, kit.snare.room * 0.35);
+      const duration = articulation === "buzz" ? 0.11 : articulation === "brush" ? 0.085 : 0.055;
+      this.acousticNoise(time, kit.snare.rattle * soft * (articulation === "buzz" ? 1.15 : 0.9), articulation === "brush" ? "bandpass" : "highpass", articulation === "brush" ? 2600 : 4300, duration, 0.8, kit.snare.room * 0.35);
       this.acousticNoise(time + 0.006, kit.snare.shell * soft * 0.55, "bandpass", 720, 0.045, 0.7, kit.snare.room * 0.25);
+      if (articulation === "drag") this.acousticNoise(time + 0.028, kit.snare.rattle * soft * 0.55, "highpass", 5000, 0.045, 0.85, kit.snare.room * 0.22);
       return;
     }
     this.noiseHit(time, kit.snare.noise * 0.28 * velocity, "bandpass", kit.snare.filter + 380, 0.055, 2.4);
   }
 
-  fill(time, velocity, kit) {
-    this.snare(time, velocity * 0.76, kit, true);
-    this.ghost(time + 0.035, velocity * 0.56, kit);
+  fill(time, velocity, kit, articulation = "drag") {
+    if (this.isHardBop(kit) && articulation === "flam_light") {
+      this.ghost(time - 0.018, velocity * 0.34, kit, "drag");
+      this.snare(time + 0.004, velocity * 0.72, kit, true, "rim");
+      return;
+    }
+    this.snare(time, velocity * 0.76, kit, true, articulation);
+    this.ghost(time + 0.035, velocity * 0.56, kit, "drag");
   }
 
   crash(time, velocity, kit) {
@@ -229,10 +250,10 @@ export class AudioEngine {
     generatedBar.events.forEach((event) => {
       const time = startTime + Math.max(0, event.step * stepDuration + (event.microOffsetMs || 0) / 1000);
       if (event.part === "kick") this.kick(time, event.velocity, kit);
-      if (event.part === "snare") this.snare(time, event.velocity, kit, event.reason.includes("rim"));
-      if (event.part === "hat") this.hat(time, event.velocity, kit, event.step === 14 && generatedBar.stats.densityScore > 0.52);
-      if (event.part === "ghost") this.ghost(time, event.velocity, kit);
-      if (event.part === "fill") this.fill(time, event.velocity, kit);
+      if (event.part === "snare") this.snare(time, event.velocity, kit, event.reason.includes("rim") || event.articulation === "rim", event.articulation || "stick");
+      if (event.part === "hat") this.hat(time, event.velocity, kit, event.step === 14 && generatedBar.stats.densityScore > 0.52, event.articulation || "ride_tip");
+      if (event.part === "ghost") this.ghost(time, event.velocity, kit, event.articulation || "brush");
+      if (event.part === "fill") this.fill(time, event.velocity, kit, event.articulation || "drag");
       if (event.part === "crash") this.crash(time, event.velocity, kit);
     });
     return context;

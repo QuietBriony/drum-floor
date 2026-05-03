@@ -92,6 +92,7 @@ export const defaultControls = {
   humanize: 48,
   kit: "tight_band",
   frame: "auto",
+  phraseLength: 16,
   variationSeed: 137,
   risk: 52,
   space: 35,
@@ -216,6 +217,7 @@ export function sanitizeControls(controls, profile) {
   next.density = clamp(Number(next.density) || 0, 0, 100);
   next.swing = clamp(Number(next.swing) || 0, 0, 18);
   next.humanize = clamp(Number(next.humanize) || 0, 0, 100);
+  next.phraseLength = [8, 16, 32].includes(Number(next.phraseLength)) ? Number(next.phraseLength) : 16;
   next.risk = clamp(Number(next.risk) || 0, 0, 100);
   next.space = clamp(Number(next.space) || 0, 0, 100);
   next.lift = clamp(Number(next.lift) || 0, 0, 100);

@@ -69,3 +69,15 @@ Promotion must preserve:
 - EP-133 as optional performance target
 - human arming before live use
 
+## Score CLI
+
+The first implementation slice stores listening scores only.
+
+```bash
+python -m drum_floor score live/candidates/ableton-ep133-seed-42 --target ableton --reviewer human-gate --pocket 4 --space 5 --bass-lock 4 --ghost-glue 4 --snare-lag-feel 4 --fill-naturalness 3 --mix-weight 4 --surprise 3 --repeatability 4 --what-worked "Pocket sits well" --what-failed "Fill can be rarer" --next-hint "Reduce fill pressure"
+```
+
+By default, score JSON is written under `evolution/listening-notes/`.
+
+This command does not modify candidates, pattern frames, `live/armed/`, Ableton, EP-133, or audio files.
+

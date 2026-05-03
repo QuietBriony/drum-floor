@@ -74,6 +74,12 @@ Store a metadata-only listening score after preview:
 python -m drum_floor score live/candidates/ableton-ep133-seed-42 --target ableton --reviewer human-gate --pocket 4 --space 5 --bass-lock 4 --ghost-glue 4 --snare-lag-feel 4 --fill-naturalness 3 --mix-weight 4 --surprise 3 --repeatability 4 --what-worked "Pocket sits well" --what-failed "Fill can be rarer" --next-hint "Reduce fill pressure"
 ```
 
+Create a human-reviewed evolution suggestion from listening scores:
+
+```bash
+python -m drum_floor suggest-evolution --scores-dir evolution/listening-notes --frame deep_neo_soul_pocket --out evolution/suggestions
+```
+
 ## Live candidate CLI
 
 Preferred command name:

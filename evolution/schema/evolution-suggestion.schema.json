@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://quietbriony.github.io/drum-floor/evolution/schema/evolution-suggestion.schema.json",
+  "title": "drum-floor evolution suggestion",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema",
+    "created_at",
+    "agent",
+    "source",
+    "target",
+    "averages",
+    "suggestion",
+    "safety"
+  ],
+  "properties": {
+    "schema": {
+      "const": "drum-floor.evolution.suggestion.v1"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "agent": {
+      "type": "string"
+    },
+    "source": {
+      "type": "object"
+    },
+    "target": {
+      "type": "object"
+    },
+    "averages": {
+      "type": "object"
+    },
+    "suggestion": {
+      "type": "object",
+      "required": [
+        "space_delta",
+        "snare_lag_ms_delta",
+        "kick_push_ms_delta",
+        "ghost_glue_delta",
+        "hat_swing_delta",
+        "fill_policy_hint",
+        "mix_hint_change",
+        "reasons"
+      ]
+    },
+    "safety": {
+      "type": "object",
+      "required": [
+        "stores_audio",
+        "stores_samples",
+        "metadata_only",
+        "auto_promotes_pattern_frame",
+        "writes_live_armed",
+        "requires_human_promotion"
+      ],
+      "properties": {
+        "stores_audio": {
+          "const": false
+        },
+        "stores_samples": {
+          "const": false
+        },
+        "metadata_only": {
+          "const": true
+        },
+        "auto_promotes_pattern_frame": {
+          "const": false
+        },
+        "writes_live_armed": {
+          "const": false
+        },
+        "requires_human_promotion": {
+          "const": true
+        }
+      }
+    }
+  }
+}

@@ -68,6 +68,12 @@ function controlToggle(key, label, controls) {
   </label>`;
 }
 
+function phraseLengthControl(controls) {
+  return `<label class="control-field"><span>phrase length <strong>${escapeHtml(controls.phraseLength || 16)} bars</strong></span><select data-control="phraseLength">
+    ${[8, 16, 32].map((value) => `<option value="${value}"${Number(controls.phraseLength || 16) === value ? " selected" : ""}>${value} bars</option>`).join("")}
+  </select></label>`;
+}
+
 const scoreAxes = [
   ["pocket", "ポケット"],
   ["space", "間"],
@@ -295,8 +301,23 @@ function renderStepGrid(generatedBar) {
     const parts = generatedBar.events.filter((event) => event.step === step);
     return `<div class="step-cell${parts.length ? " has-hit" : ""}" title="${escapeHtml(parts.map((part) => `${part.part}: ${part.reason}`).join(" / "))}">
       <span>${step + 1}</span><strong>${parts.map((part) => escapeHtml(labels[part.part] || part.part[0].toUpperCase())).join("")}</strong>
+      <em>${escapeHtml(parts.map((part) => part.articulation || "").filter(Boolean).slice(0, 1).join(""))}</em>
     </div>`;
   }).join("");
+}
+
+function renderPhraseFlow(bar) {
+  const length = Number(bar.stats.phraseLength || 16);
+  const active = Number(bar.barInPhrase || 0);
+  const labelsByRole = { settle: "着地", breathe: "息", build: "上げ", turn: "転", release: "放" };
+  return card("phrase flow", `
+    <div class="phrase-flow">
+      ${[...Array(length).keys()].map((index) => {
+        const progress = length <= 1 ? 1 : index / (length - 1);
+        const role = progress < 0.16 ? "settle" : progress < 0.42 ? "breathe" : progress < 0.72 ? "build" : progress < 0.9 ? "turn" : "release";
+        return `<div class="phrase-cell ${role}${index === active ? " is-active" : ""}"><span>${index + 1}</span><strong>${labelsByRole[role]}</strong></div>`;
+      }).join("")}
+    </div>`, true);
 }
 
 function renderQuickStartCard(profile, controls, frame) {
@@ -316,6 +337,7 @@ function renderCoreControls(profile, controls, frame, state) {
       <label class="control-field"><span>section <strong>${escapeHtml(controls.section)}</strong></span><select data-control="section">${sections.map((section) => `<option value="${escapeHtml(section)}"${section === controls.section ? " selected" : ""}>${escapeHtml(section)}</option>`).join("")}</select></label>
       <label class="control-field"><span>kit <strong>${escapeHtml(kitPresets[controls.kit].label)}</strong></span><select data-control="kit">${Object.entries(kitPresets).map(([id, kit]) => `<option value="${escapeHtml(id)}"${id === controls.kit ? " selected" : ""}>${escapeHtml(kit.label)}</option>`).join("")}</select></label>
       <label class="control-field"><span>pocket <strong>${escapeHtml(frame?.label || "auto")}</strong></span><select data-control="frame">${(state.patternFrames || []).map((item) => `<option value="${escapeHtml(item.id)}"${item.id === frame?.id ? " selected" : ""}>${escapeHtml(item.label)}</option>`).join("")}</select></label>
+      ${phraseLengthControl(controls)}
       ${controlRange("bpm", "BPM", controls, 54, 190)}
       ${controlRange("energy", "熱量", controls, 0, 100)}
       ${controlRange("space", "間", controls, 0, 100)}
@@ -334,6 +356,7 @@ function renderAdvancedControls(profile, controls, frame, state) {
       <label class="control-field"><span>kit <strong>${escapeHtml(kitPresets[controls.kit].label)}</strong></span><select data-control="kit">${Object.entries(kitPresets).map(([id, kit]) => `<option value="${escapeHtml(id)}"${id === controls.kit ? " selected" : ""}>${escapeHtml(kit.label)}</option>`).join("")}</select></label>
       <label class="control-field"><span>pattern frame <strong>${escapeHtml(frame?.label || "auto")}</strong></span><select data-control="frame">${(state.patternFrames || []).map((item) => `<option value="${escapeHtml(item.id)}"${item.id === frame?.id ? " selected" : ""}>${escapeHtml(item.label)}</option>`).join("")}</select></label>
       <label class="control-field"><span>AI mode <strong>${escapeHtml(controls.aiMode)}</strong></span><select data-control="aiMode"><option value="follow"${controls.aiMode === "follow" ? " selected" : ""}>follow</option><option value="lead"${controls.aiMode === "lead" ? " selected" : ""}>lead</option><option value="lock"${controls.aiMode === "lock" ? " selected" : ""}>lock</option></select></label>
+      ${phraseLengthControl(controls)}
       ${controlRange("bpm", "BPM", controls, 54, 190)}
       ${controlRange("energy", "energy", controls, 0, 100)}
       ${controlRange("density", "density", controls, 0, 100)}
@@ -349,15 +372,15 @@ function renderAdvancedControls(profile, controls, frame, state) {
     </div>`, true);
 }
 
-function renderFeelCard(decision, stats, controls) {
+function renderFeelCard(decision, stats, controls, bar) {
   return card("今のノリ", `
     <div class="feel-grid">
       <div><span>間</span><strong>${Math.round(decision.spaceIntent * 100)}%</strong></div>
       <div><span>溜め</span><strong>${Math.round(decision.liftIntent * 100)}%</strong></div>
       <div><span>フィル</span><strong>${Math.round(stats.fillChance * 100)}%</strong></div>
-      <div><span>BPM</span><strong>${controls.bpm}</strong></div>
+      <div><span>役割</span><strong>${escapeHtml(stats.barRole || "settle")}</strong></div>
     </div>
-    <p class="card-copy compact-copy">${escapeHtml(decision.phraseAction)} / ${escapeHtml(decision.reasons.slice(0, 2).join("、") || "manual groove")}</p>`);
+    <p class="card-copy compact-copy">bar ${Number(bar.barInPhrase || 0) + 1}/${stats.phraseLength || 16} / ${escapeHtml(decision.phraseAction)} / ${escapeHtml(decision.reasons.slice(0, 2).join("、") || "manual groove")}</p>`);
 }
 
 function renderPreviewView(profile, state) {
@@ -382,9 +405,10 @@ function renderPreviewView(profile, state) {
       </div>`, true)}
     ${renderQuickStartCard(profile, controls, frame)}
     ${showAdvanced ? renderAdvancedControls(profile, controls, frame, state) : renderCoreControls(profile, controls, frame, state)}
-    ${renderFeelCard(decision, stats, controls)}
+    ${renderFeelCard(decision, stats, controls, bar)}
     ${renderPatternFrameSummary(frame)}
-    ${card("16 step generated bar", `<div class="step-grid">${renderStepGrid(bar)}</div>`, true)}
+    ${renderPhraseFlow(bar)}
+    ${card("今の1小節 / 16 step", `<div class="step-grid">${renderStepGrid(bar)}</div>`, true)}
     ${showAdvanced ? renderMixHints(frame) : ""}
     ${showAdvanced ? card("AI判断", `
       ${meter("space", decision.spaceIntent, `${Math.round(decision.spaceIntent * 100)}% / 間`) }
@@ -410,6 +434,8 @@ function renderPreviewView(profile, state) {
     ${showAdvanced ? card("現在の出力", keyValues({
       phrase_action: decision.phraseAction,
       bar_in_phrase: `${decision.barInPhrase + 1}/8`,
+      browser_phrase: `${bar.barInPhrase + 1}/${stats.phraseLength}`,
+      bar_role: stats.barRole,
       density: `${Math.round(stats.densityScore * 100)}%`,
       fill_probability: `${Math.round(stats.fillChance * 100)}%`,
       fill_slots: stats.fillSlots.join(", ") || "none",

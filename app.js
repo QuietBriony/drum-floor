@@ -5,7 +5,7 @@ import { defaultBandInputFrame, defaultControls, sanitizeControls } from "./src/
 import { generateGrooveBar } from "./src/groove-engine.js";
 import { createControlState, randomizeVariation, tapTempo, updateControl } from "./src/manual-controls.js";
 import { MidiOutput } from "./src/midi-output.js";
-import { renderAll, renderLoadError } from "./src/ui-render.js?v=simple-ui-v1";
+import { renderAll, renderLoadError } from "./src/ui-render.js?v=organic-flow-v1";
 
 const refs = {
   profileList: document.querySelector("#profile-list"),

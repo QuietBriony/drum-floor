@@ -40,6 +40,7 @@
 - ブラウザ音生成と音入力予測は将来実装対象だが、最初は合成音・ルールベース・手動停止を前提にする
 - Pages UI の自動生成プレビューは Web Audio 合成音のみを使い、BPM/tap/section/kit/energy/density/swing/humanize を手動操作できる
 - AI Live画面は通常時にkit/pocket/energy/space中心のシンプル操作を出し、score/promotionなどは開発パネルに畳む
+- ブラウザpreviewは `phrase length` と `barRole` で8/16/32小節の流れを見せ、Hard Bop Roomではbrush/ride/buzzなどの奏法を合成音で鳴らす
 - `Hard Bop Room` kit はサンプルなしのWeb Audio合成で、皮/スティック/スナッピー/短い部屋鳴りを重ねるacoustic寄りpreviewとして使う
 - AI co-player はまず rule-based。外部AI API、音声送信、録音保存はしない
 - 音入力は `getUserMedia` のローカルfeatures解析のみ。permission拒否時はmanual modeへ戻る

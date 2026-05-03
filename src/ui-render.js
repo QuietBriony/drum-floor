@@ -158,6 +158,81 @@ function renderSuggestionCommandView(state) {
     </div>`, true);
 }
 
+function promotionValue(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && String(value).trim() !== "" ? numeric : value;
+}
+
+function buildPromotionRequest(state) {
+  const draft = state.promotionDraft || {};
+  const scoreFiles = String(draft.scoreFiles || "")
+    .split(/[\n,]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return JSON.stringify({
+    schema: "drum-floor.evolution.promotion-request.v1",
+    created_at: "2026-05-03T00:00:00Z",
+    reviewer: draft.reviewer || "human-gate",
+    source: {
+      score_files: scoreFiles,
+      suggestion_file: draft.suggestionFile || "evolution/suggestions/deep_neo_soul_pocket-20260503T000000Z.json"
+    },
+    target: {
+      pattern_frame: draft.patternFrame || "deep_neo_soul_pocket",
+      field: draft.field || "pocket_director.ghost_glue"
+    },
+    proposed_change: {
+      from: promotionValue(draft.from),
+      to: promotionValue(draft.to),
+      reason: draft.reason || ""
+    },
+    human_review: {
+      musical_intent: draft.musicalIntent || "",
+      listening_summary: draft.listeningSummary || "",
+      acceptance_condition: draft.acceptanceCondition || ""
+    },
+    safety: {
+      metadata_only: true,
+      auto_promotes_pattern_frame: false,
+      writes_live_armed: false,
+      adds_audio: false,
+      adds_samples: false,
+      adds_dependencies: false,
+      touches_workflows: false
+    },
+    rollback: {
+      strategy: draft.rollbackStrategy || "Open a normal PR restoring the previous value if listening gets cluttered.",
+      previous_value: promotionValue(draft.from)
+    }
+  }, null, 2);
+}
+
+function renderPromotionRequestView(state) {
+  const draft = state.promotionDraft || {};
+  const requestJson = buildPromotionRequest(state);
+  return card("Promotion request", `
+    <p class="card-copy">suggestionをpattern frame変更へ昇格するための、人間review用JSONです。これは提案書であり、ブラウザからpattern frameは変更しません。</p>
+    <div class="control-grid">
+      <label class="control-field"><span>reviewer <strong>${escapeHtml(draft.reviewer || "human-gate")}</strong></span><input value="${escapeHtml(draft.reviewer || "human-gate")}" data-promotion-meta="reviewer" /></label>
+      <label class="control-field note-field"><span>score files</span><textarea data-promotion-meta="scoreFiles">${escapeHtml(draft.scoreFiles || "")}</textarea></label>
+      <label class="control-field"><span>suggestion file</span><input value="${escapeHtml(draft.suggestionFile || "")}" data-promotion-meta="suggestionFile" /></label>
+      <label class="control-field"><span>pattern frame <strong>${escapeHtml(draft.patternFrame || "deep_neo_soul_pocket")}</strong></span><select data-promotion-meta="patternFrame">${(state.patternFrames || []).map((frame) => `<option value="${escapeHtml(frame.id)}"${frame.id === draft.patternFrame ? " selected" : ""}>${escapeHtml(frame.label)}</option>`).join("")}</select></label>
+      <label class="control-field"><span>field</span><input value="${escapeHtml(draft.field || "")}" data-promotion-meta="field" /></label>
+      <label class="control-field"><span>from</span><input value="${escapeHtml(draft.from || "")}" data-promotion-meta="from" /></label>
+      <label class="control-field"><span>to</span><input value="${escapeHtml(draft.to || "")}" data-promotion-meta="to" /></label>
+      <label class="control-field note-field"><span>reason</span><textarea data-promotion-meta="reason">${escapeHtml(draft.reason || "")}</textarea></label>
+      <label class="control-field note-field"><span>musical intent</span><textarea data-promotion-meta="musicalIntent">${escapeHtml(draft.musicalIntent || "")}</textarea></label>
+      <label class="control-field note-field"><span>listening summary</span><textarea data-promotion-meta="listeningSummary">${escapeHtml(draft.listeningSummary || "")}</textarea></label>
+      <label class="control-field note-field"><span>acceptance condition</span><textarea data-promotion-meta="acceptanceCondition">${escapeHtml(draft.acceptanceCondition || "")}</textarea></label>
+      <label class="control-field note-field"><span>rollback strategy</span><textarea data-promotion-meta="rollbackStrategy">${escapeHtml(draft.rollbackStrategy || "")}</textarea></label>
+    </div>
+    <textarea class="command-box" id="promotion-request-json" readonly>${escapeHtml(requestJson)}</textarea>
+    <div class="preview-controls">
+      <button class="preview-button secondary" type="button" data-action="copy-promotion-request">promotion request JSONをコピー</button>
+      <span class="preview-state">pattern frame変更は別PRで人間reviewします</span>
+    </div>`, true);
+}
+
 function renderProfileList(refs, state) {
   refs.profileCount.textContent = `${state.profiles.length}件`;
   refs.profileList.innerHTML = state.profiles.map((profile) => `
@@ -299,6 +374,7 @@ function renderPreviewView(profile, state) {
     }))}
     ${renderScorecardView(state)}
     ${renderSuggestionCommandView(state)}
+    ${renderPromotionRequestView(state)}
     ${card("安全条件", chipList(["local audio features only", "no recording", "no upload", "Web Audio synthesis only", "no samples", "manual panic stop"], "token"), true)}
   </div>`;
 }

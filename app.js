@@ -82,6 +82,20 @@ const state = {
     agent: "pocket-director-agent",
     out: "evolution/suggestions"
   },
+  promotionDraft: {
+    reviewer: "human-gate",
+    scoreFiles: "evolution/listening-notes/deep-pocket-score-001.json",
+    suggestionFile: "evolution/suggestions/deep_neo_soul_pocket-20260503T000000Z.json",
+    patternFrame: "deep_neo_soul_pocket",
+    field: "pocket_director.ghost_glue",
+    from: "0.86",
+    to: "0.88",
+    reason: "Listening scores favored more connective ghost texture while keeping space high.",
+    musicalIntent: "Keep the drummer relaxed and behind the beat while adding a little more glue between bass answers.",
+    listeningSummary: "Ableton preview felt strong in space and pocket, but the transition into the next phrase could connect more softly.",
+    acceptanceCondition: "The next generated candidate should keep fill density low and improve ghost continuity without making hats busier.",
+    rollbackStrategy: "Open a normal PR restoring the previous value if listening gets cluttered."
+  },
   copyStatus: ""
 };
 
@@ -275,6 +289,16 @@ document.addEventListener("click", (event) => {
     }
     render();
   }
+  if (action === "copy-promotion-request") {
+    const request = document.querySelector("#promotion-request-json")?.value || "";
+    if (request && navigator.clipboard) {
+      navigator.clipboard.writeText(request);
+      state.copyStatus = "promotion request JSONをコピーしました";
+    } else {
+      state.copyStatus = "promotion request JSONを選択してコピーしてください";
+    }
+    render();
+  }
 });
 
 document.addEventListener("click", (event) => {
@@ -317,6 +341,13 @@ document.addEventListener("input", (event) => {
   const suggestionControl = event.target.closest("[data-suggestion-meta]");
   if (suggestionControl) {
     state.suggestionDraft[suggestionControl.dataset.suggestionMeta] = suggestionControl.value;
+    state.copyStatus = "";
+    render();
+    return;
+  }
+  const promotionControl = event.target.closest("[data-promotion-meta]");
+  if (promotionControl) {
+    state.promotionDraft[promotionControl.dataset.promotionMeta] = promotionControl.value;
     state.copyStatus = "";
     render();
   }

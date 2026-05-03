@@ -1,0 +1,48 @@
+{
+  "schema": "drum-floor.evolution.listening-score.v1",
+  "candidate": {
+    "candidate_id": "ableton-ep133-seed-42-nerdy_jazzy_hiphop-84bpm-8bars-seed42",
+    "style": "nerdy_jazzy_hiphop",
+    "frame": "deep_neo_soul_pocket",
+    "bpm": 84,
+    "bars": 8,
+    "seed": 42
+  },
+  "listening": {
+    "target": "ableton",
+    "reviewer": "human-gated-pocket-director",
+    "created_at": "2026-05-03T00:00:00Z"
+  },
+  "scores": {
+    "pocket": 4,
+    "space": 5,
+    "bass_lock": 4,
+    "ghost_glue": 4,
+    "snare_lag_feel": 4,
+    "fill_naturalness": 3,
+    "mix_weight": 4,
+    "surprise": 3,
+    "repeatability": 4
+  },
+  "notes": {
+    "what_worked": "Snare lag and ghost glue make the bar feel relaxed without collapsing.",
+    "what_failed": "Fill could be rarer before the next chorus.",
+    "next_hint": "Keep the space, reduce fill urgency, and make bass answers slightly more selective."
+  },
+  "suggestion_seed": {
+    "space_delta": 0.02,
+    "snare_lag_ms_delta": 0,
+    "kick_push_ms_delta": 0,
+    "ghost_glue_delta": 0.02,
+    "hat_swing_delta": 0,
+    "fill_policy_hint": "reduce short fill probability on chorus return",
+    "mix_hint_change": "keep kick round but pull crash farther back"
+  },
+  "safety": {
+    "stores_audio": false,
+    "stores_samples": false,
+    "metadata_only": true,
+    "auto_promotes_pattern_frame": false,
+    "writes_live_armed": false
+  }
+}

@@ -5,6 +5,9 @@ export class AudioEngine {
     this.audioContext = null;
     this.master = null;
     this.compressor = null;
+    this.roomDelay = null;
+    this.roomFilter = null;
+    this.roomGain = null;
   }
 
   ensure() {
@@ -19,6 +22,15 @@ export class AudioEngine {
     this.compressor.release.value = 0.16;
     this.master = this.audioContext.createGain();
     this.master.gain.value = 0.38;
+    this.roomDelay = this.audioContext.createDelay(0.08);
+    this.roomFilter = this.audioContext.createBiquadFilter();
+    this.roomGain = this.audioContext.createGain();
+    this.roomDelay.delayTime.value = 0.026;
+    this.roomFilter.type = "bandpass";
+    this.roomFilter.frequency.value = 1150;
+    this.roomFilter.Q.value = 0.72;
+    this.roomGain.gain.value = 0.18;
+    this.roomDelay.connect(this.roomFilter).connect(this.roomGain).connect(this.compressor);
     this.master.connect(this.compressor).connect(this.audioContext.destination);
     return this.audioContext;
   }
@@ -44,6 +56,23 @@ export class AudioEngine {
     return gain;
   }
 
+  linearEnvelope(startTime, peak, attack, decay) {
+    const gain = this.audioContext.createGain();
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(Math.max(peak, 0), startTime + attack);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + attack + decay);
+    return gain;
+  }
+
+  connectVoice(node, roomAmount = 0) {
+    node.connect(this.master);
+    if (this.roomDelay && roomAmount > 0) {
+      const send = this.audioContext.createGain();
+      send.gain.value = Math.min(0.24, Math.max(0, roomAmount));
+      node.connect(send).connect(this.roomDelay);
+    }
+  }
+
   noiseBuffer(duration) {
     const length = Math.max(1, Math.floor(this.audioContext.sampleRate * duration));
     const buffer = this.audioContext.createBuffer(1, length, this.audioContext.sampleRate);
@@ -65,7 +94,44 @@ export class AudioEngine {
     source.stop(time + duration + 0.07);
   }
 
+  acousticNoise(time, velocity, filterType, frequency, duration, q, roomAmount = 0) {
+    const source = this.audioContext.createBufferSource();
+    const filter = this.audioContext.createBiquadFilter();
+    const gain = this.linearEnvelope(time, velocity, 0.002, duration);
+    source.buffer = this.noiseBuffer(duration + 0.08);
+    filter.type = filterType;
+    filter.frequency.setValueAtTime(frequency, time);
+    filter.Q.value = q;
+    source.connect(filter).connect(gain);
+    this.connectVoice(gain, roomAmount);
+    source.start(time);
+    source.stop(time + duration + 0.08);
+  }
+
+  struckTone(time, velocity, frequency, duration, type = "triangle", roomAmount = 0) {
+    const osc = this.audioContext.createOscillator();
+    const gain = this.linearEnvelope(time, velocity, 0.002, duration);
+    osc.type = type;
+    osc.frequency.setValueAtTime(frequency, time);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(40, frequency * 0.82), time + duration * 0.7);
+    osc.connect(gain);
+    this.connectVoice(gain, roomAmount);
+    osc.start(time);
+    osc.stop(time + duration + 0.03);
+  }
+
+  isHardBop(kit) {
+    return kit?.model === "hard_bop_room";
+  }
+
   kick(time, velocity, kit) {
+    if (this.isHardBop(kit)) {
+      const loudness = Math.min(1.2, Math.max(0.05, velocity));
+      this.struckTone(time, kit.kick.peak * loudness, kit.kick.start, kit.kick.decay, kit.kick.tone, kit.kick.room * (0.7 + loudness * 0.5));
+      this.acousticNoise(time + 0.001, kit.kick.beater * loudness, "bandpass", 2800 + loudness * 900, 0.024, 2.1, 0.025);
+      if (kit.kick.sub) this.struckTone(time + 0.006, kit.kick.sub * loudness, kit.kick.end * 0.72, kit.kick.decay * 1.4, "sine", kit.kick.room * 0.6);
+      return;
+    }
     const osc = this.audioContext.createOscillator();
     const gain = this.envelope(time, kit.kick.peak * velocity, 0.008, kit.kick.decay);
     osc.type = kit.kick.tone;
@@ -87,6 +153,17 @@ export class AudioEngine {
   }
 
   snare(time, velocity, kit, rim = false) {
+    if (this.isHardBop(kit)) {
+      const loudness = Math.min(1.2, Math.max(0.05, velocity));
+      const room = kit.snare.room * (0.65 + loudness * 0.55);
+      this.acousticNoise(time, kit.snare.stick * loudness, "highpass", 3100 + loudness * 1000, 0.028, 1.6, room * 0.25);
+      this.struckTone(time + 0.001, kit.snare.body * loudness, 190 - loudness * 20, 0.11 + loudness * 0.025, "triangle", room);
+      this.acousticNoise(time + 0.004, kit.snare.noise * loudness, "bandpass", kit.snare.filter + loudness * 700, kit.snare.decay + loudness * 0.035, 2.4, room);
+      this.acousticNoise(time + 0.012, kit.snare.rattle * loudness, "highpass", 5200 + loudness * 1400, 0.11 + loudness * 0.045, 0.9, room * 0.85);
+      this.acousticNoise(time + 0.018, kit.snare.shell * loudness, "bandpass", 620, 0.1, 0.7, room * 0.7);
+      if (rim && kit.snare.rim) this.acousticNoise(time + 0.002, kit.snare.rim * loudness, "highpass", 3900, 0.042, 1.2, room * 0.35);
+      return;
+    }
     this.noiseHit(time, kit.snare.noise * velocity, "bandpass", kit.snare.filter, kit.snare.decay, 2.2);
     const body = this.audioContext.createOscillator();
     const gain = this.envelope(time, kit.snare.body * velocity, 0.004, 0.08);
@@ -99,11 +176,27 @@ export class AudioEngine {
   }
 
   hat(time, velocity, kit, open = false) {
+    if (this.isHardBop(kit)) {
+      const loudness = Math.min(1.2, Math.max(0.04, velocity));
+      const decay = open ? kit.hat.open : kit.hat.closed;
+      const room = kit.hat.room * (0.7 + loudness * 0.45);
+      this.acousticNoise(time, kit.hat.ride * loudness, "bandpass", 6100 + loudness * 1200, decay + loudness * 0.06, 1.1, room);
+      this.acousticNoise(time + 0.004, kit.hat.clean * loudness, "highpass", kit.hat.filter + loudness * 900, decay * 0.55, 0.65, room * 0.45);
+      if (loudness > 0.48) this.acousticNoise(time + 0.007, kit.hat.bell * loudness, "bandpass", 3800, 0.08, 4.2, room * 0.4);
+      if (kit.hat.dirty) this.acousticNoise(time + 0.01, kit.hat.dirty * loudness, "bandpass", 2400, decay * 0.8, 0.8, room * 0.3);
+      return;
+    }
     this.noiseHit(time, kit.hat.clean * velocity, "highpass", kit.hat.filter, open ? kit.hat.open : kit.hat.closed, 0.8);
     if (kit.hat.dirty) this.noiseHit(time + 0.002, kit.hat.dirty * velocity, "bandpass", kit.hat.filter * 0.62, open ? kit.hat.open * 0.7 : kit.hat.closed * 1.2, 1.8);
   }
 
   ghost(time, velocity, kit) {
+    if (this.isHardBop(kit)) {
+      const soft = Math.min(0.62, Math.max(0.04, velocity));
+      this.acousticNoise(time, kit.snare.rattle * soft * 0.9, "highpass", 4300, 0.055, 0.8, kit.snare.room * 0.35);
+      this.acousticNoise(time + 0.006, kit.snare.shell * soft * 0.55, "bandpass", 720, 0.045, 0.7, kit.snare.room * 0.25);
+      return;
+    }
     this.noiseHit(time, kit.snare.noise * 0.28 * velocity, "bandpass", kit.snare.filter + 380, 0.055, 2.4);
   }
 
@@ -113,6 +206,14 @@ export class AudioEngine {
   }
 
   crash(time, velocity, kit) {
+    if (this.isHardBop(kit)) {
+      const loudness = Math.min(1.1, Math.max(0.06, velocity));
+      const room = kit.crash.room * (0.8 + loudness * 0.5);
+      this.acousticNoise(time, kit.crash.gain * loudness, "highpass", kit.crash.filter, kit.crash.decay, 0.55, room);
+      this.acousticNoise(time + 0.012, kit.crash.width * loudness, "bandpass", kit.crash.filter * 0.58, kit.crash.decay * 0.82, 0.75, room);
+      this.acousticNoise(time + 0.028, kit.crash.width * 0.46 * loudness, "bandpass", 2100, kit.crash.decay * 0.65, 0.45, room * 0.7);
+      return;
+    }
     this.noiseHit(time, kit.crash.gain * velocity, "highpass", kit.crash.filter, kit.crash.decay, 0.5);
     if (kit.crash.width) this.noiseHit(time + 0.012, kit.crash.width * velocity, "bandpass", kit.crash.filter * 0.72, kit.crash.decay * 0.85, 0.7);
   }

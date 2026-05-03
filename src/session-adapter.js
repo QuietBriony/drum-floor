@@ -27,6 +27,15 @@ function defaultBasePath() {
   return withTrailingSlash(new URL("../", import.meta.url).href);
 }
 
+function resolveBasePath(path) {
+  const raw = withTrailingSlash(path || defaultBasePath());
+  try {
+    return withTrailingSlash(new URL(raw).href);
+  } catch {
+    return withTrailingSlash(new URL(raw, import.meta.url).href);
+  }
+}
+
 function normalizePercent(value, fallback) {
   const number = Number(value);
   if (!Number.isFinite(number)) return fallback;
@@ -75,7 +84,7 @@ function compactBar(bar) {
 }
 
 export function createDrumFloorSessionAdapter(options = {}) {
-  const basePath = withTrailingSlash(options.basePath || defaultBasePath());
+  const basePath = resolveBasePath(options.basePath || defaultBasePath());
   const audioEngine = new AudioEngine({
     audioContext: options.audioContext || null,
     destination: options.destination || null,

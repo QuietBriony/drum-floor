@@ -76,6 +76,12 @@ const state = {
       next_hint: "Reduce fill pressure"
     }
   },
+  suggestionDraft: {
+    scoresDir: "evolution/listening-notes",
+    frame: "deep_neo_soul_pocket",
+    agent: "pocket-director-agent",
+    out: "evolution/suggestions"
+  },
   copyStatus: ""
 };
 
@@ -259,6 +265,16 @@ document.addEventListener("click", (event) => {
     }
     render();
   }
+  if (action === "copy-suggestion-command") {
+    const command = document.querySelector("#suggestion-command")?.value || "";
+    if (command && navigator.clipboard) {
+      navigator.clipboard.writeText(command);
+      state.copyStatus = "suggest-evolution commandをコピーしました";
+    } else {
+      state.copyStatus = "suggest-evolution commandを選択してコピーしてください";
+    }
+    render();
+  }
 });
 
 document.addEventListener("click", (event) => {
@@ -294,6 +310,13 @@ document.addEventListener("input", (event) => {
   const metaControl = event.target.closest("[data-score-meta]");
   if (metaControl) {
     state.scoreDraft[metaControl.dataset.scoreMeta] = metaControl.value;
+    state.copyStatus = "";
+    render();
+    return;
+  }
+  const suggestionControl = event.target.closest("[data-suggestion-meta]");
+  if (suggestionControl) {
+    state.suggestionDraft[suggestionControl.dataset.suggestionMeta] = suggestionControl.value;
     state.copyStatus = "";
     render();
   }

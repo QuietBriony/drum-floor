@@ -663,6 +663,11 @@ code {
   width: 100%;
 }
 
+.command-box:focus {
+  border-color: rgba(201, 147, 59, 0.74);
+  outline: none;
+}
+
 @media (max-width: 920px) {
   .topbar,
   .hero {

@@ -107,6 +107,18 @@ function buildScoreCommand(state) {
   ].join(" ");
 }
 
+function buildSuggestionCommand(state) {
+  const draft = state.suggestionDraft || {};
+  const parts = [
+    "python -m drum_floor suggest-evolution",
+    `--scores-dir ${draft.scoresDir || "evolution/listening-notes"}`,
+    `--frame ${draft.frame || "deep_neo_soul_pocket"}`,
+    `--agent ${shellQuote(draft.agent || "pocket-director-agent")}`,
+    `--out ${draft.out || "evolution/suggestions"}`
+  ];
+  return parts.join(" ");
+}
+
 function renderScorecardView(state) {
   const draft = state.scoreDraft;
   const command = buildScoreCommand(state);
@@ -125,6 +137,24 @@ function renderScorecardView(state) {
     <div class="preview-controls">
       <button class="preview-button secondary" type="button" data-action="copy-score-command">score commandをコピー</button>
       <span class="preview-state">${escapeHtml(state.copyStatus || "score JSONはCLIがmetadata-onlyで保存します")}</span>
+    </div>`, true);
+}
+
+function renderSuggestionCommandView(state) {
+  const draft = state.suggestionDraft || {};
+  const command = buildSuggestionCommand(state);
+  return card("進化提案コマンド", `
+    <p class="card-copy">保存済みscore JSONから、Pocket Directorの進化提案を作るCLI commandです。提案はmetadata-onlyで、pattern frame本体は自動更新しません。</p>
+    <div class="control-grid">
+      <label class="control-field"><span>scores dir <strong>${escapeHtml(draft.scoresDir || "evolution/listening-notes")}</strong></span><input value="${escapeHtml(draft.scoresDir || "evolution/listening-notes")}" data-suggestion-meta="scoresDir" /></label>
+      <label class="control-field"><span>frame <strong>${escapeHtml(draft.frame || "deep_neo_soul_pocket")}</strong></span><select data-suggestion-meta="frame">${(state.patternFrames || []).map((frame) => `<option value="${escapeHtml(frame.id)}"${frame.id === draft.frame ? " selected" : ""}>${escapeHtml(frame.label)}</option>`).join("")}</select></label>
+      <label class="control-field"><span>agent <strong>${escapeHtml(draft.agent || "pocket-director-agent")}</strong></span><input value="${escapeHtml(draft.agent || "pocket-director-agent")}" data-suggestion-meta="agent" /></label>
+      <label class="control-field"><span>out <strong>${escapeHtml(draft.out || "evolution/suggestions")}</strong></span><input value="${escapeHtml(draft.out || "evolution/suggestions")}" data-suggestion-meta="out" /></label>
+    </div>
+    <textarea class="command-box" id="suggestion-command" readonly>${escapeHtml(command)}</textarea>
+    <div class="preview-controls">
+      <button class="preview-button secondary" type="button" data-action="copy-suggestion-command">suggest-evolution commandをコピー</button>
+      <span class="preview-state">提案JSONはCLIがmetadata-onlyで保存します。採用は別PRで人間review。</span>
     </div>`, true);
 }
 
@@ -268,6 +298,7 @@ function renderPreviewView(profile, state) {
       variation_seed: controls.variationSeed
     }))}
     ${renderScorecardView(state)}
+    ${renderSuggestionCommandView(state)}
     ${card("安全条件", chipList(["local audio features only", "no recording", "no upload", "Web Audio synthesis only", "no samples", "manual panic stop"], "token"), true)}
   </div>`;
 }

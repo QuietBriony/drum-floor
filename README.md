@@ -82,6 +82,8 @@ python -m drum_floor suggest-evolution --scores-dir evolution/listening-notes --
 
 The Pages UI includes a scorecard panel that builds a copyable `python -m drum_floor score` command while listening.
 
+It also includes a suggestion command panel for `python -m drum_floor suggest-evolution` so score-to-suggestion flow can stay human-gated.
+
 ## Live candidate CLI
 
 Preferred command name:

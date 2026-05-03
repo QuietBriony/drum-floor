@@ -88,6 +88,14 @@ Promotion from suggestion to pattern-frame change is documented in `docs/evoluti
 
 The Pages UI can also build a copyable promotion request JSON for the human-gated promotion PR.
 
+Validate a promotion request before turning it into a pattern-frame PR:
+
+```bash
+python -m drum_floor validate-promotion evolution/examples/promotion-request.example.json
+```
+
+Use `--require-sources` when the referenced score and suggestion JSON files should already exist locally.
+
 ## Live candidate CLI
 
 Preferred command name:

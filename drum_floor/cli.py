@@ -6,6 +6,7 @@ from pathlib import Path
 from .generator import GenerateRequest, generate_candidate
 from .inspector import inspect_candidate
 from .live_log import write_live_log
+from .promotion import validate_promotion_request
 from .scoring import SCORE_KEYS, ScoreRequest, score_candidate
 from .suggestions import SuggestionRequest, suggest_evolution
 
@@ -56,6 +57,13 @@ def build_parser() -> argparse.ArgumentParser:
     suggest.add_argument("--frame", help="Optional pattern frame id filter.")
     suggest.add_argument("--agent", default="pocket-director-agent", help="Suggestion agent label.")
     suggest.add_argument("--out", type=Path, default=Path("evolution/suggestions"), help="Output directory for suggestion JSON.")
+
+    validate_promotion = subparsers.add_parser(
+        "validate-promotion",
+        help="Validate a human-gated promotion request JSON without writing or promoting anything.",
+    )
+    validate_promotion.add_argument("request", type=Path, help="Promotion request JSON to validate.")
+    validate_promotion.add_argument("--require-sources", action="store_true", help="Fail if referenced score or suggestion files are missing.")
     return parser
 
 
@@ -157,5 +165,20 @@ def main(argv: list[str] | None = None) -> int:
         print(f"frame: {result.frame}")
         print(f"score_count: {result.score_count}")
         return 0
+    if args.command == "validate-promotion":
+        result = validate_promotion_request(args.request, require_sources=args.require_sources)
+        print(f"promotion_request: {result.request_path}")
+        print(f"ok: {str(result.ok).lower()}")
+        if result.summary:
+            print(f"reviewer: {result.summary.get('reviewer') or '-'}")
+            print(f"pattern_frame: {result.summary.get('pattern_frame') or '-'}")
+            print(f"target_field: {result.summary.get('target_field') or '-'}")
+            print(f"score_files: {len(result.summary.get('score_files') or [])}")
+            print(f"suggestion_file: {result.summary.get('suggestion_file') or '-'}")
+        for warning in result.warnings:
+            print(f"warning: {warning}")
+        for error in result.errors:
+            print(f"error: {error}")
+        return 0 if result.ok else 1
     parser.error("unknown command")
     return 2

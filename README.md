@@ -56,6 +56,18 @@ The Pages UI loads these frames and lets you switch the current Pocket Director 
 
 See `docs/drum-pattern-frame-contract.md` for the contract and future CLI/UI connection points.
 
+## Pocket Director evolution
+
+`evolution/` defines a metadata-only, human-gated loop for listening scores and future Pocket Director suggestions.
+
+Evolution suggestions do not automatically overwrite `patterns/drum-pattern-frames.json`, do not arm live candidates, and do not store audio or samples.
+
+Start with:
+
+- `docs/evolution-pocket-director-loop.md`
+- `docs/evolution-scorecard.md`
+- `evolution/examples/deep-pocket-score.example.json`
+
 ## Live candidate CLI
 
 Preferred command name:

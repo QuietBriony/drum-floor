@@ -1,0 +1,211 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://quietbriony.github.io/drum-floor/evolution/schema/listening-score.schema.json",
+  "title": "drum-floor listening score",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "candidate",
+    "listening",
+    "scores",
+    "notes",
+    "safety"
+  ],
+  "properties": {
+    "schema": {
+      "const": "drum-floor.evolution.listening-score.v1"
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_id",
+        "style",
+        "frame",
+        "bpm",
+        "bars",
+        "seed"
+      ],
+      "properties": {
+        "candidate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "style": {
+          "type": "string",
+          "minLength": 1
+        },
+        "frame": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bpm": {
+          "type": "integer",
+          "minimum": 40,
+          "maximum": 240
+        },
+        "bars": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 128
+        },
+        "seed": {
+          "type": "integer"
+        }
+      }
+    },
+    "listening": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target",
+        "reviewer",
+        "created_at"
+      ],
+      "properties": {
+        "target": {
+          "enum": [
+            "browser",
+            "ableton",
+            "ep133_preview"
+          ]
+        },
+        "reviewer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "created_at": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "scores": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pocket",
+        "space",
+        "bass_lock",
+        "ghost_glue",
+        "snare_lag_feel",
+        "fill_naturalness",
+        "mix_weight",
+        "surprise",
+        "repeatability"
+      ],
+      "properties": {
+        "pocket": {
+          "$ref": "#/$defs/score"
+        },
+        "space": {
+          "$ref": "#/$defs/score"
+        },
+        "bass_lock": {
+          "$ref": "#/$defs/score"
+        },
+        "ghost_glue": {
+          "$ref": "#/$defs/score"
+        },
+        "snare_lag_feel": {
+          "$ref": "#/$defs/score"
+        },
+        "fill_naturalness": {
+          "$ref": "#/$defs/score"
+        },
+        "mix_weight": {
+          "$ref": "#/$defs/score"
+        },
+        "surprise": {
+          "$ref": "#/$defs/score"
+        },
+        "repeatability": {
+          "$ref": "#/$defs/score"
+        }
+      }
+    },
+    "notes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "what_worked",
+        "what_failed",
+        "next_hint"
+      ],
+      "properties": {
+        "what_worked": {
+          "type": "string"
+        },
+        "what_failed": {
+          "type": "string"
+        },
+        "next_hint": {
+          "type": "string"
+        }
+      }
+    },
+    "suggestion_seed": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "space_delta": {
+          "type": "number"
+        },
+        "snare_lag_ms_delta": {
+          "type": "integer"
+        },
+        "kick_push_ms_delta": {
+          "type": "integer"
+        },
+        "ghost_glue_delta": {
+          "type": "number"
+        },
+        "hat_swing_delta": {
+          "type": "number"
+        },
+        "fill_policy_hint": {
+          "type": "string"
+        },
+        "mix_hint_change": {
+          "type": "string"
+        }
+      }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stores_audio",
+        "stores_samples",
+        "metadata_only",
+        "auto_promotes_pattern_frame",
+        "writes_live_armed"
+      ],
+      "properties": {
+        "stores_audio": {
+          "const": false
+        },
+        "stores_samples": {
+          "const": false
+        },
+        "metadata_only": {
+          "const": true
+        },
+        "auto_promotes_pattern_frame": {
+          "const": false
+        },
+        "writes_live_armed": {
+          "const": false
+        }
+      }
+    }
+  },
+  "$defs": {
+    "score": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5
+    }
+  }
+}

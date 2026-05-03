@@ -102,6 +102,12 @@ Preview the same request against the current pattern frames without writing anyt
 python -m drum_floor plan-promotion evolution/examples/promotion-request.example.json
 ```
 
+Preview the patch-like change without writing `patterns/drum-pattern-frames.json`:
+
+```bash
+python -m drum_floor apply-promotion evolution/examples/promotion-request.example.json --dry-run
+```
+
 ## Live candidate CLI
 
 Preferred command name:

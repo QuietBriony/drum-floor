@@ -84,6 +84,8 @@ The Pages UI includes a scorecard panel that builds a copyable `python -m drum_f
 
 It also includes a suggestion command panel for `python -m drum_floor suggest-evolution` so score-to-suggestion flow can stay human-gated.
 
+Promotion from suggestion to pattern-frame change is documented in `docs/evolution-promotion-workflow.md`.
+
 ## Live candidate CLI
 
 Preferred command name:

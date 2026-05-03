@@ -1,0 +1,38 @@
+{
+  "schema": "drum-floor.evolution.promotion-request.v1",
+  "created_at": "2026-05-03T00:00:00Z",
+  "reviewer": "human-gate",
+  "source": {
+    "score_files": [
+      "evolution/listening-notes/deep-pocket-score-001.json"
+    ],
+    "suggestion_file": "evolution/suggestions/deep_neo_soul_pocket-20260503T000000Z.json"
+  },
+  "target": {
+    "pattern_frame": "deep_neo_soul_pocket",
+    "field": "pocket_director.ghost_glue"
+  },
+  "proposed_change": {
+    "from": 0.86,
+    "to": 0.88,
+    "reason": "Listening scores favored more connective ghost texture while keeping space high."
+  },
+  "human_review": {
+    "musical_intent": "Keep the drummer relaxed and behind the beat while adding a little more glue between bass answers.",
+    "listening_summary": "Ableton preview felt strong in space and pocket, but the transition into the next phrase could connect more softly.",
+    "acceptance_condition": "The next generated candidate should keep fill density low and improve ghost continuity without making hats busier."
+  },
+  "safety": {
+    "metadata_only": true,
+    "auto_promotes_pattern_frame": false,
+    "writes_live_armed": false,
+    "adds_audio": false,
+    "adds_samples": false,
+    "adds_dependencies": false,
+    "touches_workflows": false
+  },
+  "rollback": {
+    "strategy": "Open a normal PR restoring pocket_director.ghost_glue to the previous value if listening gets cluttered.",
+    "previous_value": 0.86
+  }
+}

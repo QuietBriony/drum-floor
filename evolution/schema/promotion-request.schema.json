@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://quietbriony.github.io/drum-floor/evolution/schema/promotion-request.schema.json",
+  "title": "drum-floor evolution promotion request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "created_at",
+    "reviewer",
+    "source",
+    "target",
+    "proposed_change",
+    "human_review",
+    "safety",
+    "rollback"
+  ],
+  "properties": {
+    "schema": {
+      "const": "drum-floor.evolution.promotion-request.v1"
+    },
+    "created_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reviewer": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "score_files",
+        "suggestion_file"
+      ],
+      "properties": {
+        "score_files": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "suggestion_file": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pattern_frame",
+        "field"
+      ],
+      "properties": {
+        "pattern_frame": {
+          "type": "string",
+          "minLength": 1
+        },
+        "field": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "proposed_change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to",
+        "reason"
+      ],
+      "properties": {
+        "from": {},
+        "to": {},
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "human_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "musical_intent",
+        "listening_summary",
+        "acceptance_condition"
+      ],
+      "properties": {
+        "musical_intent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "listening_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acceptance_condition": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metadata_only",
+        "auto_promotes_pattern_frame",
+        "writes_live_armed",
+        "adds_audio",
+        "adds_samples",
+        "adds_dependencies",
+        "touches_workflows"
+      ],
+      "properties": {
+        "metadata_only": {
+          "const": true
+        },
+        "auto_promotes_pattern_frame": {
+          "const": false
+        },
+        "writes_live_armed": {
+          "const": false
+        },
+        "adds_audio": {
+          "const": false
+        },
+        "adds_samples": {
+          "const": false
+        },
+        "adds_dependencies": {
+          "const": false
+        },
+        "touches_workflows": {
+          "const": false
+        }
+      }
+    },
+    "rollback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "strategy",
+        "previous_value"
+      ],
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "previous_value": {}
+      }
+    }
+  }
+}

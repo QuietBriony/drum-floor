@@ -86,6 +86,8 @@ It also includes a suggestion command panel for `python -m drum_floor suggest-ev
 
 Promotion from suggestion to pattern-frame change is documented in `docs/evolution-promotion-workflow.md`.
 
+The Pages UI can also build a copyable promotion request JSON for the human-gated promotion PR.
+
 ## Live candidate CLI
 
 Preferred command name:

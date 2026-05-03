@@ -30,3 +30,9 @@ Individual listening-note JSON files are ignored by git so local listening histo
 
 Schema and examples remain tracked.
 
+## Suggestions
+
+The `suggest-evolution` command reads listening scores and writes suggestion JSON under `evolution/suggestions/` by default.
+
+Suggestion JSON files are ignored by git because they are local review artifacts until a human promotes one through a separate PR.
+

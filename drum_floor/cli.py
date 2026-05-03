@@ -7,6 +7,7 @@ from .generator import GenerateRequest, generate_candidate
 from .inspector import inspect_candidate
 from .live_log import write_live_log
 from .scoring import SCORE_KEYS, ScoreRequest, score_candidate
+from .suggestions import SuggestionRequest, suggest_evolution
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -46,6 +47,15 @@ def build_parser() -> argparse.ArgumentParser:
     score.add_argument("--what-failed", required=True, help="Short note about what failed.")
     score.add_argument("--next-hint", required=True, help="Short hint for the next evolution suggestion.")
     score.add_argument("--out", type=Path, help="Output directory for listening score JSON. Defaults to evolution/listening-notes.")
+
+    suggest = subparsers.add_parser(
+        "suggest-evolution",
+        help="Create a metadata-only Pocket Director evolution suggestion from listening scores.",
+    )
+    suggest.add_argument("--scores-dir", type=Path, default=Path("evolution/listening-notes"), help="Directory containing listening score JSON files.")
+    suggest.add_argument("--frame", help="Optional pattern frame id filter.")
+    suggest.add_argument("--agent", default="pocket-director-agent", help="Suggestion agent label.")
+    suggest.add_argument("--out", type=Path, default=Path("evolution/suggestions"), help="Output directory for suggestion JSON.")
     return parser
 
 
@@ -131,6 +141,21 @@ def main(argv: list[str] | None = None) -> int:
         print(f"score: {result.out_path}")
         print(f"candidate: {result.candidate_id}")
         print(f"target: {result.target}")
+        return 0
+    if args.command == "suggest-evolution":
+        try:
+            result = suggest_evolution(SuggestionRequest(
+                scores_dir=args.scores_dir,
+                out=args.out,
+                frame=args.frame,
+                agent=args.agent,
+            ))
+        except Exception as error:
+            print(f"error: {error}")
+            return 1
+        print(f"suggestion: {result.out_path}")
+        print(f"frame: {result.frame}")
+        print(f"score_count: {result.score_count}")
         return 0
     parser.error("unknown command")
     return 2

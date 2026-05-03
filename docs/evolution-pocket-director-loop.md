@@ -81,3 +81,15 @@ By default, score JSON is written under `evolution/listening-notes/`.
 
 This command does not modify candidates, pattern frames, `live/armed/`, Ableton, EP-133, or audio files.
 
+## Suggestion CLI
+
+The next implementation slice reads listening scores and writes a metadata-only suggestion.
+
+```bash
+python -m drum_floor suggest-evolution --scores-dir evolution/listening-notes --frame deep_neo_soul_pocket --out evolution/suggestions
+```
+
+Suggestions are not promotions.
+
+They must be reviewed by a human before any separate PR updates `patterns/drum-pattern-frames.json`.
+

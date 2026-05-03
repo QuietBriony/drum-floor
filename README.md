@@ -39,6 +39,7 @@
 - Pages UI は profile確認、使い方確認、開発状況把握のための入口として使う
 - ブラウザ音生成と音入力予測は将来実装対象だが、最初は合成音・ルールベース・手動停止を前提にする
 - Pages UI の自動生成プレビューは Web Audio 合成音のみを使い、BPM/tap/section/kit/energy/density/swing/humanize を手動操作できる
+- `Hard Bop Room` kit はサンプルなしのWeb Audio合成で、皮/スティック/スナッピー/短い部屋鳴りを重ねるacoustic寄りpreviewとして使う
 - AI co-player はまず rule-based。外部AI API、音声送信、録音保存はしない
 - 音入力は `getUserMedia` のローカルfeatures解析のみ。permission拒否時はmanual modeへ戻る
 - CLI/OpenClaw は `live/candidates/`, `live/logs/`, 明示した生成 `--out` のみへ書き込む

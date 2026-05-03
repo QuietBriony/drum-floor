@@ -157,6 +157,15 @@ export const kitPresets = {
     snare: { noise: 0.56, body: 0.16, rim: 0.18, filter: 2050, decay: 0.14 },
     hat: { clean: 0.14, dirty: 0.09, filter: 6900, closed: 0.038, open: 0.2 },
     crash: { gain: 0.32, width: 0.28, filter: 5600, decay: 0.68 }
+  },
+  hard_bop_room: {
+    label: "Hard Bop Room",
+    description: "皮、スティック、スナッピー、短い部屋鳴りを重ねるacoustic寄りkit。ride/ghostが白色ノイズに聞こえないことを優先する。",
+    model: "hard_bop_room",
+    kick: { start: 96, end: 54, peak: 0.62, decay: 0.18, tone: "triangle", sub: 0.08, beater: 0.16, room: 0.1 },
+    snare: { noise: 0.34, body: 0.22, rim: 0.12, filter: 1620, decay: 0.18, stick: 0.16, shell: 0.13, rattle: 0.22, room: 0.13 },
+    hat: { clean: 0.08, dirty: 0.04, filter: 6800, closed: 0.09, open: 0.32, ride: 0.14, bell: 0.055, room: 0.055 },
+    crash: { gain: 0.18, width: 0.16, filter: 4600, decay: 0.9, room: 0.16 }
   }
 };
 

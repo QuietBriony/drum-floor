@@ -6,6 +6,7 @@ from pathlib import Path
 from .generator import GenerateRequest, generate_candidate
 from .inspector import inspect_candidate
 from .live_log import write_live_log
+from .promotion_apply import dry_run_apply_promotion_request
 from .promotion import validate_promotion_request
 from .promotion_plan import plan_promotion_request
 from .scoring import SCORE_KEYS, ScoreRequest, score_candidate
@@ -72,6 +73,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     plan_promotion.add_argument("request", type=Path, help="Promotion request JSON to plan.")
     plan_promotion.add_argument("--require-sources", action="store_true", help="Fail if referenced score or suggestion files are missing.")
+
+    apply_promotion = subparsers.add_parser(
+        "apply-promotion",
+        help="Preview a promotion application. Only --dry-run is supported.",
+    )
+    apply_promotion.add_argument("request", type=Path, help="Promotion request JSON to preview.")
+    apply_promotion.add_argument("--dry-run", action="store_true", required=True, help="Required safety gate. Print patch preview without writing.")
+    apply_promotion.add_argument("--require-sources", action="store_true", help="Fail if referenced score or suggestion files are missing.")
     return parser
 
 
@@ -200,6 +209,23 @@ def main(argv: list[str] | None = None) -> int:
             print(f"proposed_to: {result.summary.get('proposed_to')!r}")
             print(f"would_write: {str(bool(result.summary.get('would_write'))).lower()}")
             print(f"requires_human_pr: {str(bool(result.summary.get('requires_human_pr'))).lower()}")
+        for warning in result.warnings:
+            print(f"warning: {warning}")
+        for error in result.errors:
+            print(f"error: {error}")
+        return 0 if result.ok else 1
+    if args.command == "apply-promotion":
+        result = dry_run_apply_promotion_request(args.request, require_sources=args.require_sources)
+        print(f"promotion_request: {result.request_path}")
+        print(f"ok: {str(result.ok).lower()}")
+        if result.summary:
+            print(f"dry_run: {str(bool(result.summary.get('dry_run'))).lower()}")
+            print(f"pattern_frame: {result.summary.get('pattern_frame') or '-'}")
+            print(f"target_field: {result.summary.get('target_field') or '-'}")
+            print(f"would_write: {str(bool(result.summary.get('would_write'))).lower()}")
+            print(f"requires_human_pr: {str(bool(result.summary.get('requires_human_pr'))).lower()}")
+        for line in result.patch_preview:
+            print(line)
         for warning in result.warnings:
             print(f"warning: {warning}")
         for error in result.errors:

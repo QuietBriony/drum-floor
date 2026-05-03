@@ -151,6 +151,22 @@ Before sending to EP-133, preview `drums.mid` in Ableton and check the MIDI map:
 - `docs/ableton-preview-checklist.md`
 - `docs/ep133-midi-map.md`
 
+## Browser session adapter
+
+`src/session-adapter.js` exposes `createDrumFloorSessionAdapter()` for browser
+sessions such as `chill/session.html`.
+
+OpenClaw treats this as a trio drum surface:
+
+- `snapshot()`: read loaded/status/session/profile/frame/bar state.
+- `previewBar()`: inspect one generated bar without scheduling audio.
+- `diagnostics.previewSession()`: inspect multiple compact bars without writing files.
+
+The adapter can be loaded by `chill` for manual browser playback, but OpenClaw v1
+does not auto-click `START`, auto-arm drums, write recordings, or take over Tone
+transport. CLI `raw_live_drum_drive` remains the candidate generation path;
+the browser adapter is for live trio audition inside `chill`.
+
 Design boundary:
 
 - JSON is source of truth.

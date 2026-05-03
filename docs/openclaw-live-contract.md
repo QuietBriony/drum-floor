@@ -80,6 +80,23 @@ On failure, OpenClaw should leave the current live state untouched and report th
 
 The CLI returns a non-zero exit code and writes a `generate-failed` log in `live/logs/` when it can safely do so.
 
+## Browser trio surface
+
+`src/session-adapter.js` also exposes a browser-only session adapter:
+
+- `createDrumFloorSessionAdapter(options)`
+- `adapter.snapshot()`
+- `adapter.previewBar(options)`
+- `adapter.diagnostics.previewSession(options)`
+
+This surface is intended for `chill/session.html` and OpenClaw observation. It
+lets the trio preview drum-floor bars next to chill piano and bass without
+writing candidates or touching `live/armed/`.
+
+OpenClaw may document and inspect this surface, but v1 must not use it to start
+browser audio, click controls, arm drums, record, upload, or bypass the human
+listening gate.
+
 ## Human-armed workflow
 
 1. OpenClaw requests a candidate under `live/candidates/<candidate-id>/`.

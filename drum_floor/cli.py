@@ -7,6 +7,7 @@ from .generator import GenerateRequest, generate_candidate
 from .inspector import inspect_candidate
 from .live_log import write_live_log
 from .promotion import validate_promotion_request
+from .promotion_plan import plan_promotion_request
 from .scoring import SCORE_KEYS, ScoreRequest, score_candidate
 from .suggestions import SuggestionRequest, suggest_evolution
 
@@ -64,6 +65,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     validate_promotion.add_argument("request", type=Path, help="Promotion request JSON to validate.")
     validate_promotion.add_argument("--require-sources", action="store_true", help="Fail if referenced score or suggestion files are missing.")
+
+    plan_promotion = subparsers.add_parser(
+        "plan-promotion",
+        help="Preview a human-gated promotion request against current pattern frames without writing.",
+    )
+    plan_promotion.add_argument("request", type=Path, help="Promotion request JSON to plan.")
+    plan_promotion.add_argument("--require-sources", action="store_true", help="Fail if referenced score or suggestion files are missing.")
     return parser
 
 
@@ -175,6 +183,23 @@ def main(argv: list[str] | None = None) -> int:
             print(f"target_field: {result.summary.get('target_field') or '-'}")
             print(f"score_files: {len(result.summary.get('score_files') or [])}")
             print(f"suggestion_file: {result.summary.get('suggestion_file') or '-'}")
+        for warning in result.warnings:
+            print(f"warning: {warning}")
+        for error in result.errors:
+            print(f"error: {error}")
+        return 0 if result.ok else 1
+    if args.command == "plan-promotion":
+        result = plan_promotion_request(args.request, require_sources=args.require_sources)
+        print(f"promotion_request: {result.request_path}")
+        print(f"ok: {str(result.ok).lower()}")
+        if result.summary:
+            print(f"pattern_frame: {result.summary.get('pattern_frame') or '-'}")
+            print(f"target_field: {result.summary.get('target_field') or '-'}")
+            print(f"current_value: {result.summary.get('current_value')!r}")
+            print(f"proposed_from: {result.summary.get('proposed_from')!r}")
+            print(f"proposed_to: {result.summary.get('proposed_to')!r}")
+            print(f"would_write: {str(bool(result.summary.get('would_write'))).lower()}")
+            print(f"requires_human_pr: {str(bool(result.summary.get('requires_human_pr'))).lower()}")
         for warning in result.warnings:
             print(f"warning: {warning}")
         for error in result.errors:

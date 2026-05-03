@@ -96,6 +96,12 @@ python -m drum_floor validate-promotion evolution/examples/promotion-request.exa
 
 Use `--require-sources` when the referenced score and suggestion JSON files should already exist locally.
 
+Preview the same request against the current pattern frames without writing anything:
+
+```bash
+python -m drum_floor plan-promotion evolution/examples/promotion-request.example.json
+```
+
 ## Live candidate CLI
 
 Preferred command name:

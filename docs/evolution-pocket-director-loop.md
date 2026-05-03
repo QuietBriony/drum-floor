@@ -93,3 +93,5 @@ Suggestions are not promotions.
 
 They must be reviewed by a human before any separate PR updates `patterns/drum-pattern-frames.json`.
 
+See `docs/evolution-promotion-workflow.md` for the human promotion gate.
+

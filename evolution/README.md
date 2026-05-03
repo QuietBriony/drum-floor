@@ -36,3 +36,11 @@ The `suggest-evolution` command reads listening scores and writes suggestion JSO
 
 Suggestion JSON files are ignored by git because they are local review artifacts until a human promotes one through a separate PR.
 
+## Promotion
+
+Promotion requests describe why a suggestion should become a pattern-frame change.
+
+Promotion is human-gated and happens through a separate reviewed PR.
+
+See `docs/evolution-promotion-workflow.md` and `evolution/examples/promotion-request.example.json`.
+

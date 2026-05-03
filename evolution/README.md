@@ -22,3 +22,11 @@ It is for scorecards, schemas, examples, and future suggestions. It is not for a
 5. Generate or write a suggestion JSON later.
 6. Promote accepted changes through a reviewed PR.
 
+## Score storage
+
+The `score` command writes generated score JSON under `evolution/listening-notes/` by default.
+
+Individual listening-note JSON files are ignored by git so local listening history does not accidentally become repo policy.
+
+Schema and examples remain tracked.
+

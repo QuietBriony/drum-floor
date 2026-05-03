@@ -6,6 +6,7 @@ from pathlib import Path
 from .generator import GenerateRequest, generate_candidate
 from .inspector import inspect_candidate
 from .live_log import write_live_log
+from .scoring import SCORE_KEYS, ScoreRequest, score_candidate
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -31,6 +32,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="Inspect a generated candidate directory without arming or modifying it.",
     )
     inspect.add_argument("candidate", type=Path, help="Candidate directory containing the fixed generated files.")
+
+    score = subparsers.add_parser(
+        "score",
+        help="Store a metadata-only listening score for a generated candidate.",
+    )
+    score.add_argument("candidate", type=Path, help="Candidate directory to score after listening.")
+    score.add_argument("--target", required=True, choices=("browser", "ableton", "ep133_preview"), help="Listening target used for the review.")
+    score.add_argument("--reviewer", required=True, help="Human reviewer or gate name.")
+    for key in SCORE_KEYS:
+        score.add_argument(f"--{key.replace('_', '-')}", required=True, type=int, help=f"{key} score, 1-5.")
+    score.add_argument("--what-worked", required=True, help="Short note about what worked.")
+    score.add_argument("--what-failed", required=True, help="Short note about what failed.")
+    score.add_argument("--next-hint", required=True, help="Short hint for the next evolution suggestion.")
+    score.add_argument("--out", type=Path, help="Output directory for listening score JSON. Defaults to evolution/listening-notes.")
     return parser
 
 
@@ -94,5 +109,28 @@ def main(argv: list[str] | None = None) -> int:
         for error in result.errors:
             print(f"error: {error}")
         return 0 if result.ok else 1
+    if args.command == "score":
+        scores = {key: getattr(args, key) for key in SCORE_KEYS}
+        notes = {
+            "what_worked": args.what_worked,
+            "what_failed": args.what_failed,
+            "next_hint": args.next_hint,
+        }
+        try:
+            result = score_candidate(ScoreRequest(
+                candidate=args.candidate,
+                target=args.target,
+                reviewer=args.reviewer,
+                scores=scores,
+                notes=notes,
+                out=args.out,
+            ))
+        except Exception as error:
+            print(f"error: {error}")
+            return 1
+        print(f"score: {result.out_path}")
+        print(f"candidate: {result.candidate_id}")
+        print(f"target: {result.target}")
+        return 0
     parser.error("unknown command")
     return 2

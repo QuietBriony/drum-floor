@@ -68,6 +68,66 @@ function controlToggle(key, label, controls) {
   </label>`;
 }
 
+const scoreAxes = [
+  ["pocket", "ポケット"],
+  ["space", "間"],
+  ["bass_lock", "ベース追従"],
+  ["ghost_glue", "ゴースト接着"],
+  ["snare_lag_feel", "スネア遅れ感"],
+  ["fill_naturalness", "フィル自然さ"],
+  ["mix_weight", "ミックス重量"],
+  ["surprise", "小さな驚き"],
+  ["repeatability", "繰り返し耐性"]
+];
+
+function shellQuote(value) {
+  return `"${String(value ?? "").replaceAll('"', '\\"')}"`;
+}
+
+function renderScoreControl(key, label, draft) {
+  const value = draft.scores[key] ?? 3;
+  return `<label class="control-field score-field">
+    <span>${escapeHtml(label)} <strong>${value}/5</strong></span>
+    <input type="range" min="1" max="5" step="1" value="${escapeHtml(value)}" data-score-control="${escapeHtml(key)}" />
+  </label>`;
+}
+
+function buildScoreCommand(state) {
+  const draft = state.scoreDraft;
+  const scoreArgs = scoreAxes.map(([key]) => `--${key.replaceAll("_", "-")} ${draft.scores[key] ?? 3}`).join(" ");
+  return [
+    "python -m drum_floor score",
+    draft.candidate || "live/candidates/ableton-ep133-seed-42",
+    `--target ${draft.target || "ableton"}`,
+    `--reviewer ${shellQuote(draft.reviewer || "human-gate")}`,
+    scoreArgs,
+    `--what-worked ${shellQuote(draft.notes.what_worked)}`,
+    `--what-failed ${shellQuote(draft.notes.what_failed)}`,
+    `--next-hint ${shellQuote(draft.notes.next_hint)}`
+  ].join(" ");
+}
+
+function renderScorecardView(state) {
+  const draft = state.scoreDraft;
+  const command = buildScoreCommand(state);
+  return card("聴感スコアカード", `
+    <p class="card-copy">ここではファイル保存せず、CLI用のscore commandを作ります。Abletonやブラウザで聴いたあと、ターミナルで実行してください。</p>
+    <div class="control-grid">
+      <label class="control-field"><span>candidate <strong>${escapeHtml(draft.candidate)}</strong></span><input value="${escapeHtml(draft.candidate)}" data-score-meta="candidate" /></label>
+      <label class="control-field"><span>target <strong>${escapeHtml(draft.target)}</strong></span><select data-score-meta="target"><option value="browser"${draft.target === "browser" ? " selected" : ""}>browser</option><option value="ableton"${draft.target === "ableton" ? " selected" : ""}>ableton</option><option value="ep133_preview"${draft.target === "ep133_preview" ? " selected" : ""}>ep133_preview</option></select></label>
+      <label class="control-field"><span>reviewer <strong>${escapeHtml(draft.reviewer)}</strong></span><input value="${escapeHtml(draft.reviewer)}" data-score-meta="reviewer" /></label>
+      ${scoreAxes.map(([key, label]) => renderScoreControl(key, label, draft)).join("")}
+      <label class="control-field note-field"><span>what worked</span><textarea data-note-control="what_worked">${escapeHtml(draft.notes.what_worked)}</textarea></label>
+      <label class="control-field note-field"><span>what failed</span><textarea data-note-control="what_failed">${escapeHtml(draft.notes.what_failed)}</textarea></label>
+      <label class="control-field note-field"><span>next hint</span><textarea data-note-control="next_hint">${escapeHtml(draft.notes.next_hint)}</textarea></label>
+    </div>
+    <textarea class="command-box" id="score-command" readonly>${escapeHtml(command)}</textarea>
+    <div class="preview-controls">
+      <button class="preview-button secondary" type="button" data-action="copy-score-command">score commandをコピー</button>
+      <span class="preview-state">${escapeHtml(state.copyStatus || "score JSONはCLIがmetadata-onlyで保存します")}</span>
+    </div>`, true);
+}
+
 function renderProfileList(refs, state) {
   refs.profileCount.textContent = `${state.profiles.length}件`;
   refs.profileList.innerHTML = state.profiles.map((profile) => `
@@ -207,11 +267,7 @@ function renderPreviewView(profile, state) {
       kit: kitPresets[controls.kit].label,
       variation_seed: controls.variationSeed
     }))}
-    ${card("聴感メモ", `
-      <div class="score-grid">
-        ${["間", "爆発力", "band lock", "fill自然さ", "反応", "飽きなさ"].map((label) => `<button class="score-button" type="button" data-score="${escapeHtml(label)}">${escapeHtml(label)}</button>`).join("")}
-      </div>
-      <p class="card-copy">採点ボタンは今のbarの聴感メモ用です。まだ保存せず、画面上のdebugとして扱います。</p>`)}
+    ${renderScorecardView(state)}
     ${card("安全条件", chipList(["local audio features only", "no recording", "no upload", "Web Audio synthesis only", "no samples", "manual panic stop"], "token"), true)}
   </div>`;
 }

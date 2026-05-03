@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Drum Floor | バンド用グルーブ生成プロファイル</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=simple-ui-v1" />
   </head>
   <body>
     <header class="topbar">
@@ -60,9 +60,9 @@
           </div>
 
           <div class="tabbar" role="tablist" aria-label="profile表示切り替え">
-            <button class="tab-button is-active" type="button" data-view="profile">プロフィール</button>
+            <button class="tab-button" type="button" data-view="profile">プロフィール</button>
             <button class="tab-button" type="button" data-view="translation">ドラムフィール</button>
-            <button class="tab-button" type="button" data-view="preview">AI Live</button>
+            <button class="tab-button is-active" type="button" data-view="preview">AI Live</button>
             <button class="tab-button" type="button" data-view="policy">制御ポリシー</button>
             <button class="tab-button" type="button" data-view="manual">使い方</button>
             <button class="tab-button" type="button" data-view="status">開発状況</button>
@@ -70,9 +70,9 @@
           </div>
 
           <div class="view-stack">
-            <div class="view is-active" id="view-profile"></div>
+            <div class="view" id="view-profile"></div>
             <div class="view" id="view-translation"></div>
-            <div class="view" id="view-preview"></div>
+            <div class="view is-active" id="view-preview"></div>
             <div class="view" id="view-policy"></div>
             <div class="view" id="view-manual"></div>
             <div class="view" id="view-status"></div>
@@ -82,6 +82,6 @@
       </section>
     </main>
 
-    <script type="module" src="app.js"></script>
+    <script type="module" src="app.js?v=simple-ui-v1"></script>
   </body>
 </html>

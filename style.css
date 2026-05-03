@@ -336,6 +336,10 @@ h3 {
   overflow-wrap: anywhere;
 }
 
+.compact-copy {
+  margin-bottom: 0;
+}
+
 code {
   background: rgba(36, 37, 33, 0.08);
   border: 1px solid rgba(36, 37, 33, 0.1);
@@ -503,6 +507,12 @@ code {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
 }
 
+.simple-control-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+}
+
 .control-field {
   background: rgba(36, 37, 33, 0.045);
   border: 1px solid rgba(36, 37, 33, 0.12);
@@ -624,8 +634,57 @@ code {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
 }
 
+.simple-live-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+}
+
 .live-controls .preview-button {
   min-width: 96px;
+}
+
+.quick-steps,
+.feel-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  margin-bottom: 14px;
+}
+
+.quick-steps div,
+.feel-grid div {
+  background: rgba(36, 37, 33, 0.055);
+  border: 1px solid rgba(36, 37, 33, 0.12);
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 12px;
+}
+
+.quick-steps strong {
+  align-items: center;
+  background: var(--coal);
+  color: var(--paper-strong);
+  display: inline-flex;
+  font-family: "Trebuchet MS", "Yu Gothic", sans-serif;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.quick-steps span,
+.feel-grid span {
+  color: var(--muted);
+  font-family: "Trebuchet MS", "Yu Gothic", sans-serif;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+}
+
+.quick-steps b,
+.feel-grid strong {
+  color: var(--coal);
+  font-size: 1rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .score-grid {

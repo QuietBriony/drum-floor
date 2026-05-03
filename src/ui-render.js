@@ -299,17 +299,78 @@ function renderStepGrid(generatedBar) {
   }).join("");
 }
 
+function renderQuickStartCard(profile, controls, frame) {
+  return card("まずはここだけ", `
+    <div class="quick-steps">
+      <div><strong>1</strong><span>style</span><b>${escapeHtml(profile.label)}</b></div>
+      <div><strong>2</strong><span>kit</span><b>${escapeHtml(kitPresets[controls.kit].label)}</b></div>
+      <div><strong>3</strong><span>pocket</span><b>${escapeHtml(frame?.label || "Auto")}</b></div>
+    </div>
+    <p class="card-copy compact-copy">音を聴くなら、まず <strong>再生</strong>。変えるのは kit / pocket / energy / space だけで十分です。</p>`, true);
+}
+
+function renderCoreControls(profile, controls, frame, state) {
+  const sections = sectionOptions(profile);
+  return card("演奏コントロール", `
+    <div class="simple-control-grid">
+      <label class="control-field"><span>section <strong>${escapeHtml(controls.section)}</strong></span><select data-control="section">${sections.map((section) => `<option value="${escapeHtml(section)}"${section === controls.section ? " selected" : ""}>${escapeHtml(section)}</option>`).join("")}</select></label>
+      <label class="control-field"><span>kit <strong>${escapeHtml(kitPresets[controls.kit].label)}</strong></span><select data-control="kit">${Object.entries(kitPresets).map(([id, kit]) => `<option value="${escapeHtml(id)}"${id === controls.kit ? " selected" : ""}>${escapeHtml(kit.label)}</option>`).join("")}</select></label>
+      <label class="control-field"><span>pocket <strong>${escapeHtml(frame?.label || "auto")}</strong></span><select data-control="frame">${(state.patternFrames || []).map((item) => `<option value="${escapeHtml(item.id)}"${item.id === frame?.id ? " selected" : ""}>${escapeHtml(item.label)}</option>`).join("")}</select></label>
+      ${controlRange("bpm", "BPM", controls, 54, 190)}
+      ${controlRange("energy", "熱量", controls, 0, 100)}
+      ${controlRange("space", "間", controls, 0, 100)}
+      ${controlRange("lift", "持ち上げ", controls, 0, 100)}
+      ${controlRange("density", "手数", controls, 0, 100)}
+      ${controlRange("fillDemand", "フィル", controls, 0, 100)}
+    </div>`, true);
+}
+
+function renderAdvancedControls(profile, controls, frame, state) {
+  const sections = sectionOptions(profile);
+  return card("開発パネル", `
+    <p class="card-copy compact-copy">細かく調整したい時だけ使う場所です。通常の試聴では閉じていてOK。</p>
+    <div class="control-grid">
+      <label class="control-field"><span>section <strong>${escapeHtml(controls.section)}</strong></span><select data-control="section">${sections.map((section) => `<option value="${escapeHtml(section)}"${section === controls.section ? " selected" : ""}>${escapeHtml(section)}</option>`).join("")}</select></label>
+      <label class="control-field"><span>kit <strong>${escapeHtml(kitPresets[controls.kit].label)}</strong></span><select data-control="kit">${Object.entries(kitPresets).map(([id, kit]) => `<option value="${escapeHtml(id)}"${id === controls.kit ? " selected" : ""}>${escapeHtml(kit.label)}</option>`).join("")}</select></label>
+      <label class="control-field"><span>pattern frame <strong>${escapeHtml(frame?.label || "auto")}</strong></span><select data-control="frame">${(state.patternFrames || []).map((item) => `<option value="${escapeHtml(item.id)}"${item.id === frame?.id ? " selected" : ""}>${escapeHtml(item.label)}</option>`).join("")}</select></label>
+      <label class="control-field"><span>AI mode <strong>${escapeHtml(controls.aiMode)}</strong></span><select data-control="aiMode"><option value="follow"${controls.aiMode === "follow" ? " selected" : ""}>follow</option><option value="lead"${controls.aiMode === "lead" ? " selected" : ""}>lead</option><option value="lock"${controls.aiMode === "lock" ? " selected" : ""}>lock</option></select></label>
+      ${controlRange("bpm", "BPM", controls, 54, 190)}
+      ${controlRange("energy", "energy", controls, 0, 100)}
+      ${controlRange("density", "density", controls, 0, 100)}
+      ${controlRange("space", "space", controls, 0, 100)}
+      ${controlRange("lift", "lift", controls, 0, 100)}
+      ${controlRange("risk", "risk", controls, 0, 100)}
+      ${controlRange("fillDemand", "fill demand", controls, 0, 100)}
+      ${controlRange("swing", "swing", controls, 0, 18, 1, "%")}
+      ${controlRange("humanize", "humanize", controls, 0, 100)}
+      ${controlToggle("crashGate", "crash gate", controls)}
+      ${controlToggle("inputLock", "input lock", controls)}
+      ${controlToggle("midiEnabled", "MIDI send", controls)}
+    </div>`, true);
+}
+
+function renderFeelCard(decision, stats, controls) {
+  return card("今のノリ", `
+    <div class="feel-grid">
+      <div><span>間</span><strong>${Math.round(decision.spaceIntent * 100)}%</strong></div>
+      <div><span>溜め</span><strong>${Math.round(decision.liftIntent * 100)}%</strong></div>
+      <div><span>フィル</span><strong>${Math.round(stats.fillChance * 100)}%</strong></div>
+      <div><span>BPM</span><strong>${controls.bpm}</strong></div>
+    </div>
+    <p class="card-copy compact-copy">${escapeHtml(decision.phraseAction)} / ${escapeHtml(decision.reasons.slice(0, 2).join("、") || "manual groove")}</p>`);
+}
+
 function renderPreviewView(profile, state) {
   const controls = state.controlState.controls;
-  const sections = sectionOptions(profile);
   const frame = state.currentFrame || activePatternFrame(state, profile);
   const bar = state.currentBar;
   const decision = state.currentDecision;
   const stats = bar.stats;
-  const modeLabel = controls.liveMode ? "Live Mode" : "Develop Mode";
-  return `<div class="grid${controls.liveMode ? " live-grid" : ""}">
+  const showAdvanced = controls.liveMode;
+  const modeLabel = showAdvanced ? "演奏画面に戻る" : "開発パネルを表示";
+  return `<div class="grid${showAdvanced ? " live-grid" : " simple-live-grid"}">
     ${card("AI Live Groove Co-player", `
-      <p class="card-copy">rule-based AIが、手動intentとローカル音入力featuresから次barの <strong>間 → 溜め → 発火 → 回収</strong> を判断します。録音/保存/送信はしません。</p>
+      <p class="card-copy">まずは <strong>kit</strong> と <strong>pocket</strong> を選んで再生。細かい評価やCLI連携は開発パネルに畳んでいます。</p>
       <div class="preview-controls live-controls">
         <button class="preview-button" type="button" data-action="start">${state.playback.isPlaying ? "再スタート" : "再生"}</button>
         <button class="preview-button secondary" type="button" data-action="stop">停止</button>
@@ -319,36 +380,20 @@ function renderPreviewView(profile, state) {
         <button class="preview-button secondary" type="button" data-action="live-toggle">${modeLabel}</button>
         <span class="preview-state">${state.playback.isPlaying ? "再生中" : "停止中"} / bar ${bar.barIndex} / ${controls.bpm} BPM</span>
       </div>`, true)}
-    ${card("Manual Intent", `
-      <div class="control-grid">
-        <label class="control-field"><span>section <strong>${escapeHtml(controls.section)}</strong></span><select data-control="section">${sections.map((section) => `<option value="${escapeHtml(section)}"${section === controls.section ? " selected" : ""}>${escapeHtml(section)}</option>`).join("")}</select></label>
-        <label class="control-field"><span>kit <strong>${escapeHtml(kitPresets[controls.kit].label)}</strong></span><select data-control="kit">${Object.entries(kitPresets).map(([id, kit]) => `<option value="${escapeHtml(id)}"${id === controls.kit ? " selected" : ""}>${escapeHtml(kit.label)}</option>`).join("")}</select></label>
-        <label class="control-field"><span>pattern frame <strong>${escapeHtml(frame?.label || "auto")}</strong></span><select data-control="frame">${(state.patternFrames || []).map((item) => `<option value="${escapeHtml(item.id)}"${item.id === frame?.id ? " selected" : ""}>${escapeHtml(item.label)}</option>`).join("")}</select></label>
-        <label class="control-field"><span>AI mode <strong>${escapeHtml(controls.aiMode)}</strong></span><select data-control="aiMode"><option value="follow"${controls.aiMode === "follow" ? " selected" : ""}>follow</option><option value="lead"${controls.aiMode === "lead" ? " selected" : ""}>lead</option><option value="lock"${controls.aiMode === "lock" ? " selected" : ""}>lock</option></select></label>
-        ${controlRange("bpm", "BPM", controls, 54, 190)}
-        ${controlRange("energy", "energy", controls, 0, 100)}
-        ${controlRange("density", "density", controls, 0, 100)}
-        ${controlRange("space", "space", controls, 0, 100)}
-        ${controlRange("lift", "lift", controls, 0, 100)}
-        ${controlRange("risk", "risk", controls, 0, 100)}
-        ${controlRange("fillDemand", "fill demand", controls, 0, 100)}
-        ${controlRange("swing", "swing", controls, 0, 18, 1, "%")}
-        ${controlRange("humanize", "humanize", controls, 0, 100)}
-        ${controlToggle("crashGate", "crash gate", controls)}
-        ${controlToggle("inputLock", "input lock", controls)}
-        ${controlToggle("midiEnabled", "MIDI send", controls)}
-      </div>`, true)}
+    ${renderQuickStartCard(profile, controls, frame)}
+    ${showAdvanced ? renderAdvancedControls(profile, controls, frame, state) : renderCoreControls(profile, controls, frame, state)}
+    ${renderFeelCard(decision, stats, controls)}
     ${renderPatternFrameSummary(frame)}
-    ${renderMixHints(frame)}
     ${card("16 step generated bar", `<div class="step-grid">${renderStepGrid(bar)}</div>`, true)}
-    ${card("AI判断", `
+    ${showAdvanced ? renderMixHints(frame) : ""}
+    ${showAdvanced ? card("AI判断", `
       ${meter("space", decision.spaceIntent, `${Math.round(decision.spaceIntent * 100)}% / 間`) }
       ${meter("lift", decision.liftIntent, `${Math.round(decision.liftIntent * 100)}% / 溜め`) }
       ${meter("fill", decision.fillIntent, `${Math.round(decision.fillIntent * 100)}% / 発火候補`) }
       ${meter("crash", decision.crashIntent, `${Math.round(decision.crashIntent * 100)}% / release`) }
       ${meter("confidence", decision.confidence, `${Math.round(decision.confidence * 100)}%`) }
-      ${chipList(decision.reasons, "token")}`)}
-    ${card("音入力 / MIDI", `
+      ${chipList(decision.reasons, "token")}`) : ""}
+    ${showAdvanced ? card("音入力 / MIDI", `
       <div class="preview-controls">
         <button class="preview-button secondary" type="button" data-action="enable-input">音入力を有効化</button>
         <button class="preview-button secondary" type="button" data-action="disable-input">音入力停止</button>
@@ -361,8 +406,8 @@ function renderPreviewView(profile, state) {
         rough_tempo: state.bandFrame.roughTempo || "-",
         input_density: `${Math.round(state.bandFrame.density * 100)}%`,
         midi_status: state.midiStatus.status
-      })}`)}
-    ${card("現在の出力", keyValues({
+      })}`) : ""}
+    ${showAdvanced ? card("現在の出力", keyValues({
       phrase_action: decision.phraseAction,
       bar_in_phrase: `${decision.barInPhrase + 1}/8`,
       density: `${Math.round(stats.densityScore * 100)}%`,
@@ -371,10 +416,10 @@ function renderPreviewView(profile, state) {
       pattern_frame: stats.frameLabel,
       kit: kitPresets[controls.kit].label,
       variation_seed: controls.variationSeed
-    }))}
-    ${renderScorecardView(state)}
-    ${renderSuggestionCommandView(state)}
-    ${renderPromotionRequestView(state)}
+    })) : ""}
+    ${showAdvanced ? renderScorecardView(state) : ""}
+    ${showAdvanced ? renderSuggestionCommandView(state) : ""}
+    ${showAdvanced ? renderPromotionRequestView(state) : ""}
     ${card("安全条件", chipList(["local audio features only", "no recording", "no upload", "Web Audio synthesis only", "no samples", "manual panic stop"], "token"), true)}
   </div>`;
 }

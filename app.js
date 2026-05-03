@@ -55,7 +55,28 @@ const state = {
   currentFrame: null,
   currentBar: null,
   midiStatus: midiOutput.snapshot(),
-  scores: []
+  scoreDraft: {
+    candidate: "live/candidates/ableton-ep133-seed-42",
+    target: "ableton",
+    reviewer: "human-gate",
+    scores: {
+      pocket: 4,
+      space: 4,
+      bass_lock: 4,
+      ghost_glue: 4,
+      snare_lag_feel: 4,
+      fill_naturalness: 3,
+      mix_weight: 4,
+      surprise: 3,
+      repeatability: 4
+    },
+    notes: {
+      what_worked: "Pocket sits well",
+      what_failed: "Fill can be rarer",
+      next_hint: "Reduce fill pressure"
+    }
+  },
+  copyStatus: ""
 };
 
 function activeProfile() {
@@ -228,13 +249,24 @@ document.addEventListener("click", (event) => {
   if (action === "enable-input") enableInput();
   if (action === "disable-input") disableInput();
   if (action === "connect-midi") connectMidi();
+  if (action === "copy-score-command") {
+    const command = document.querySelector("#score-command")?.value || "";
+    if (command && navigator.clipboard) {
+      navigator.clipboard.writeText(command);
+      state.copyStatus = "score commandをコピーしました";
+    } else {
+      state.copyStatus = "score commandを選択してコピーしてください";
+    }
+    render();
+  }
 });
 
 document.addEventListener("click", (event) => {
   const score = event.target.closest("[data-score]")?.dataset.score;
   if (!score) return;
-  state.scores.push({ score, barIndex: state.currentBar?.barIndex ?? 0, at: new Date().toISOString() });
+  state.scoreDraft.scores[score] = Math.min(5, (state.scoreDraft.scores[score] || 3) + 1);
   event.target.classList.add("is-scored");
+  render();
 });
 
 document.addEventListener("input", (event) => {
@@ -242,6 +274,29 @@ document.addEventListener("input", (event) => {
   if (!control) return;
   updateControl(state.controlState, control.dataset.control, control.type === "checkbox" ? control.checked : control.value, activeProfile());
   render();
+});
+
+document.addEventListener("input", (event) => {
+  const scoreControl = event.target.closest("[data-score-control]");
+  if (scoreControl) {
+    state.scoreDraft.scores[scoreControl.dataset.scoreControl] = Number(scoreControl.value);
+    state.copyStatus = "";
+    render();
+    return;
+  }
+  const noteControl = event.target.closest("[data-note-control]");
+  if (noteControl) {
+    state.scoreDraft.notes[noteControl.dataset.noteControl] = noteControl.value;
+    state.copyStatus = "";
+    render();
+    return;
+  }
+  const metaControl = event.target.closest("[data-score-meta]");
+  if (metaControl) {
+    state.scoreDraft[metaControl.dataset.scoreMeta] = metaControl.value;
+    state.copyStatus = "";
+    render();
+  }
 });
 
 document.addEventListener("change", (event) => {

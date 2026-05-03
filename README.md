@@ -80,6 +80,8 @@ Create a human-reviewed evolution suggestion from listening scores:
 python -m drum_floor suggest-evolution --scores-dir evolution/listening-notes --frame deep_neo_soul_pocket --out evolution/suggestions
 ```
 
+The Pages UI includes a scorecard panel that builds a copyable `python -m drum_floor score` command while listening.
+
 ## Live candidate CLI
 
 Preferred command name:

@@ -1,8 +1,10 @@
 import { kitPresets } from "./contracts.js";
 
 export class AudioEngine {
-  constructor() {
-    this.audioContext = null;
+  constructor(options = {}) {
+    this.audioContext = options.audioContext || null;
+    this.destination = options.destination || null;
+    this.masterLevel = Number.isFinite(options.gain) ? options.gain : 0.38;
     this.master = null;
     this.compressor = null;
     this.roomDelay = null;
@@ -11,9 +13,11 @@ export class AudioEngine {
   }
 
   ensure() {
-    if (this.audioContext) return this.audioContext;
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    this.audioContext = new AudioContextClass();
+    if (this.audioContext && this.master) return this.audioContext;
+    if (!this.audioContext) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      this.audioContext = new AudioContextClass();
+    }
     this.compressor = this.audioContext.createDynamicsCompressor();
     this.compressor.threshold.value = -18;
     this.compressor.knee.value = 16;
@@ -21,7 +25,7 @@ export class AudioEngine {
     this.compressor.attack.value = 0.004;
     this.compressor.release.value = 0.16;
     this.master = this.audioContext.createGain();
-    this.master.gain.value = 0.38;
+    this.master.gain.value = this.masterLevel;
     this.roomDelay = this.audioContext.createDelay(0.08);
     this.roomFilter = this.audioContext.createBiquadFilter();
     this.roomGain = this.audioContext.createGain();
@@ -31,14 +35,14 @@ export class AudioEngine {
     this.roomFilter.Q.value = 0.72;
     this.roomGain.gain.value = 0.18;
     this.roomDelay.connect(this.roomFilter).connect(this.roomGain).connect(this.compressor);
-    this.master.connect(this.compressor).connect(this.audioContext.destination);
+    this.master.connect(this.compressor).connect(this.destination || this.audioContext.destination);
     return this.audioContext;
   }
 
   async resume() {
     const context = this.ensure();
     if (context.state === "suspended") await context.resume();
-    this.master.gain.setTargetAtTime(0.38, context.currentTime, 0.02);
+    this.master.gain.setTargetAtTime(this.masterLevel, context.currentTime, 0.02);
     return context;
   }
 

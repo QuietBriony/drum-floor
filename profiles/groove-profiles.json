@@ -709,6 +709,150 @@
         "busy_hat",
         "crowded_subdivisions"
       ]
+    },
+    {
+      "id": "raw_live_drum_drive",
+      "label": "Raw Live Drum Drive",
+      "description": "A brawny live-drum drive profile with crisp transients, cracked snare authority, busy hands, and controlled low-end weight.",
+      "section_profile": {
+        "verse": {
+          "density": "high",
+          "fill_tendency": "medium",
+          "ghost_preference": "medium",
+          "transition_style": "tight"
+        },
+        "chorus": {
+          "density": "high",
+          "fill_tendency": "high",
+          "ghost_preference": "medium",
+          "transition_style": "lift"
+        },
+        "bridge": {
+          "density": "high",
+          "fill_tendency": "high",
+          "ghost_preference": "high",
+          "transition_style": "build"
+        },
+        "end": {
+          "density": "medium",
+          "fill_tendency": "medium",
+          "ghost_preference": "low_to_mid",
+          "transition_style": "drop"
+        }
+      },
+      "instrument_profile": {
+        "vocal": {
+          "intensity": "medium",
+          "attack": "normal",
+          "syncopation": "medium"
+        },
+        "bass": {
+          "intensity": "high",
+          "attack": "hard",
+          "syncopation": "medium"
+        },
+        "guitar": {
+          "intensity": "high",
+          "attack": "hard",
+          "syncopation": "high"
+        }
+      },
+      "feel_profile": {
+        "groove_push_pull": "forward",
+        "swing": 5,
+        "humanize": "medium",
+        "density": "high",
+        "articulation": "cracked"
+      },
+      "drum_translation": {
+        "structure": {
+          "kick": [
+            "punchy_floor_anchor",
+            "short_syncopated_answers"
+          ],
+          "snare": [
+            "dry_cracked_backbeat",
+            "ghosted_drive_before_return"
+          ],
+          "hat": [
+            "raw_16th_hands",
+            "open_close_pressure"
+          ],
+          "ghost_notes": [
+            "snare_hand_noise",
+            "phrase_glue"
+          ],
+          "fill": [
+            "short_live_break_fill",
+            "tom_like_midi_strokes"
+          ],
+          "crash": [
+            "rare_room_slash",
+            "phrase_marker_only"
+          ],
+          "transition": [
+            "bar_end_hand_push",
+            "drop_to_backbeat_floor"
+          ]
+        },
+        "expression": {
+          "velocity_curve": "hard_accents_with_unpolished_hand_noise",
+          "microtiming_deviation": "forward_kick_dry_snare_lag_small_hat_scatter",
+          "humanize_range": "ms[-6,+7]",
+          "density_profile": "high_but_breathing",
+          "swing_profile": "8th 5%"
+        }
+      },
+      "fill_policy": {
+        "types": [
+          "short",
+          "long",
+          "roll"
+        ],
+        "max_per_8_bars": 2,
+        "section_priority": {
+          "verse": 4,
+          "chorus": 7,
+          "bridge": 8,
+          "end": 4
+        },
+        "transition_cue_priority": "high"
+      },
+      "ghost_notes_policy": {
+        "unit": "16th",
+        "section_density": {
+          "verse": "medium",
+          "chorus": "medium",
+          "bridge": "high",
+          "end": "low_to_mid"
+        }
+      },
+      "section_transition_rules": [
+        {
+          "from": "chorus",
+          "to": "bridge",
+          "adjustments": [
+            "allow_hand_pressure",
+            "keep_snare_crack_centered"
+          ],
+          "priority": "high"
+        },
+        {
+          "from": "bridge",
+          "to": "end",
+          "adjustments": [
+            "reduce_fill_length",
+            "restore_backbeat_floor"
+          ],
+          "priority": "medium"
+        }
+      ],
+      "avoid": [
+        "sample_pack_language",
+        "bass_overload",
+        "constant_crash",
+        "fully_quantized_loop"
+      ]
     }
   ]
 }

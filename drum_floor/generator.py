@@ -289,7 +289,7 @@ def _generate_events(profile: dict[str, Any], frame: dict[str, Any], request: Ge
             _add_event(events, bar, rng.choice([3, 7, 10, 11, 15]), "kick", 54 + round(energy * 20), "density response", micro_offset_ms=kick_push)
 
         hat_steps = [0, 4, 8, 12] if density < 0.36 or pre_lift_gap else [0, 2, 4, 6, 8, 10, 12, 14]
-        if density > 0.72 and request.style in {"mixture_shout", "breakbeat_live", "rock_heavy"}:
+        if density > 0.72 and request.style in {"mixture_shout", "breakbeat_live", "rock_heavy", "raw_live_drum_drive"}:
             hat_steps = list(range(16))
         for step in hat_steps:
             hat_offset = round(hat_swing * 8) if step % 4 else 0

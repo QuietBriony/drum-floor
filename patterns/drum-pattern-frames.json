@@ -496,6 +496,121 @@
         "constant_kick_doubling",
         "overbright_hat"
       ]
+    },
+    {
+      "id": "raw_live_break_drive",
+      "label": "Raw Live Break Drive",
+      "description": "A raw, close-room live drum frame for hard-driving break pressure with cracked snare, busy hands, and human-gated fill control.",
+      "style_affinity": [
+        "raw_live_drum_drive",
+        "breakbeat_live",
+        "rock_heavy"
+      ],
+      "feel_tags": [
+        "raw_live",
+        "dry_snare",
+        "hand_drive",
+        "break_pressure",
+        "bass_safe"
+      ],
+      "section_fit": {
+        "intro": "medium",
+        "verse": "high",
+        "chorus": "high",
+        "bridge": "high",
+        "end": "medium"
+      },
+      "pocket_director": {
+        "space": 0.28,
+        "snare_lag_ms": 5,
+        "kick_push_ms": -7,
+        "ghost_glue": 0.58,
+        "hat_swing": 0.38,
+        "bass_lock": "drive the room with midrange hands and keep kick weight short so Music low end stays safe",
+        "mix_hints": {
+          "kick_weight": "short_punch_no_sub_bloom",
+          "snare_body": "dry_crack_with_close_room",
+          "hat_brightness": "raw_mid_not_harsh",
+          "room": "small_close_room",
+          "crash_distance": "short_rare_slash"
+        }
+      },
+      "structure_template": {
+        "kick": [
+          {
+            "step": 0,
+            "role": "floor_anchor"
+          },
+          {
+            "step": 3,
+            "role": "break_push"
+          },
+          {
+            "step": 8,
+            "role": "drive_return"
+          },
+          {
+            "step": 10,
+            "role": "syncopated_answer"
+          }
+        ],
+        "snare": [
+          {
+            "step": 4,
+            "role": "dry_backbeat"
+          },
+          {
+            "step": 11,
+            "role": "hand_lift"
+          },
+          {
+            "step": 12,
+            "role": "dry_backbeat"
+          }
+        ],
+        "hat": [
+          {
+            "step": "broken_16ths",
+            "role": "raw_hand_grid"
+          }
+        ],
+        "ghost": [
+          {
+            "step": 5,
+            "role": "left_hand_noise"
+          },
+          {
+            "step": 7,
+            "role": "drag"
+          },
+          {
+            "step": 14,
+            "role": "pickup_noise"
+          }
+        ],
+        "fill": [
+          {
+            "step": 12,
+            "role": "short_live_turnaround"
+          },
+          {
+            "step": 14,
+            "role": "hand_roll"
+          }
+        ],
+        "crash": [
+          {
+            "step": 0,
+            "role": "rare_room_slash"
+          }
+        ]
+      },
+      "avoid": [
+        "bass_bloom",
+        "bright_edm_hat",
+        "fill_every_bar",
+        "sample_or_recording_copy"
+      ]
     }
   ]
 }

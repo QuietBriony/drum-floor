@@ -330,6 +330,24 @@ function renderQuickStartCard(profile, controls, frame) {
     <p class="card-copy compact-copy">音を聴くなら、まず <strong>再生</strong>。変えるのは kit / pocket / energy / space だけで十分です。</p>`, true);
 }
 
+function renderMusicSyncRoleCard(state) {
+  const translation = state.musicPacket?.translation;
+  const route = translation?.stack_route || {};
+  if (!translation) {
+    return card("Music SYNC", `
+      <p class="card-copy compact-copy">MusicでSYNCすると、ここは<strong>単独ドラムpreview</strong>として構えだけ受けます。音は<strong>再生</strong>まで鳴りません。</p>
+      <p class="card-copy compact-copy">chill内のDRUMSはchillが流れを持つ別入口です。</p>`, true);
+  }
+  const recommended = route.recommended_here;
+  const label = route.label || "Music route";
+  const reason = route.reason || translation.intent?.review_reason || "Music packetから作る手動preview候補。";
+  return card(recommended ? "Music推奨: drum-floor" : "Music SYNC候補", `
+    <p class="card-copy compact-copy"><strong>${escapeHtml(label)}</strong></p>
+    <p class="card-copy compact-copy">${escapeHtml(reason)}</p>
+    <p class="card-copy compact-copy">${recommended ? "ここで聴くなら、下の <strong>再生</strong> を押すだけ。" : "Musicの本命行き先とは別に、drum-floorは候補として反映済み。鳴らす時だけ <strong>再生</strong>。"}</p>
+    <p class="card-copy compact-copy">これはstandalone preview。chill内DRUMSやOpenClaw raw candidateとは別です。</p>`, true);
+}
+
 function renderCoreControls(profile, controls, frame, state) {
   const sections = sectionOptions(profile);
   return card("演奏コントロール", `
@@ -403,6 +421,7 @@ function renderPreviewView(profile, state) {
         <button class="preview-button secondary" type="button" data-action="live-toggle">${modeLabel}</button>
         <span class="preview-state">${state.playback.isPlaying ? "再生中" : "停止中"} / bar ${bar.barIndex} / ${controls.bpm} BPM</span>
       </div>`, true)}
+    ${renderMusicSyncRoleCard(state)}
     ${renderQuickStartCard(profile, controls, frame)}
     ${showAdvanced ? renderAdvancedControls(profile, controls, frame, state) : renderCoreControls(profile, controls, frame, state)}
     ${renderFeelCard(decision, stats, controls, bar)}

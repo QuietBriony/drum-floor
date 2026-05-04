@@ -239,6 +239,7 @@ function renderPacketTranslation(translation) {
     frame: translation.frameId,
     controls: translation.controls,
     intent: translation.intent,
+    stack_route: translation.stack_route,
     safety: translation.safety
   }, null, 2);
 }
@@ -254,7 +255,11 @@ function readMusicPacket() {
     const translation = translateMusicSessionPacket(packet);
     state.musicPacket = { packet, translation };
     renderPacketTranslation(translation);
-    updatePacketStatus(`OK: ${escapeText(translation.source_session_id || "Music packet")} を ${translation.profileId} / ${translation.frameId} へ翻訳しました。`, "ok");
+    const route = translation.stack_route;
+    const routeHint = route?.label
+      ? ` Music推奨: ${route.label}${route.recommended_here ? "。" : "。drum-floorは候補として反映。"}`
+      : "";
+    updatePacketStatus(`OK: ${escapeText(translation.source_session_id || "Music packet")} を ${translation.profileId} / ${translation.frameId} へ翻訳しました。${escapeText(routeHint)}`, "ok");
     return translation;
   } catch (error) {
     state.musicPacket = { packet: null, translation: null };
@@ -283,7 +288,11 @@ function applyMusicPacketPreview(options = {}) {
   state.controlState.controls.frame = translation.frameId;
   state.memory = { ...state.memory, barIndex: 0, lastPhraseAction: "lock" };
   state.activeView = "preview";
-  updatePacketStatus(options.message || `preview controlsへ反映しました。STARTは人間が押すまで鳴りません。`, "ok");
+  const route = translation.stack_route;
+  const routeHint = route?.label
+    ? ` Music推奨: ${route.label}${route.recommended_here ? "。ここで再生。" : "。ここは候補preview。"}`
+    : "";
+  updatePacketStatus(options.message || `preview controlsへ反映しました。STARTは人間が押すまで鳴りません。${routeHint}`, "ok");
   render();
 }
 
@@ -309,8 +318,12 @@ function receiveMusicStackPacket(payload, source = "sync") {
     state.musicPacket = { packet, translation, pendingSync: state.profiles.length ? null : packet };
     if (refs.musicPacketInput) refs.musicPacketInput.value = JSON.stringify(packet, null, 2);
     renderPacketTranslation(translation);
+    const route = translation.stack_route;
+    const routeHint = route?.label
+      ? ` Music推奨: ${route.label}${route.recommended_here ? "。再生で確認できます。" : "。drum-floorは候補として反映しました。"}`
+      : "";
     applyMusicPacketPreview({
-      message: `SYNC受信: ${escapeText(translation.source_session_id || source)} をpreview controlsへ反映しました。STARTは人間が押すまで鳴りません。`
+      message: `SYNC受信: ${escapeText(translation.source_session_id || source)} をpreview controlsへ反映しました。STARTは人間が押すまで鳴りません。${escapeText(routeHint)}`
     });
     return true;
   } catch (error) {

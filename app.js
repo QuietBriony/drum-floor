@@ -8,6 +8,9 @@ import { MidiOutput } from "./src/midi-output.js";
 import { translateMusicSessionPacket } from "./src/music-session-adapter.js";
 import { renderAll, renderLoadError } from "./src/ui-render.js?v=organic-flow-v1";
 
+const MUSIC_STACK_PACKET_STORAGE_KEY = "qb:music-stack:latest-packet:v1";
+const MUSIC_STACK_CHANNEL_NAME = "qb:music-stack:v1";
+
 const refs = {
   profileList: document.querySelector("#profile-list"),
   profileCount: document.querySelector("#profile-count"),
@@ -103,7 +106,8 @@ const state = {
   copyStatus: "",
   musicPacket: {
     translation: null,
-    packet: null
+    packet: null,
+    pendingSync: null
   }
 };
 
@@ -260,9 +264,14 @@ function readMusicPacket() {
   }
 }
 
-function applyMusicPacketPreview() {
+function applyMusicPacketPreview(options = {}) {
   const translation = state.musicPacket.translation || readMusicPacket();
   if (!translation) return;
+  if (!state.profiles.length) {
+    state.musicPacket.pendingSync = state.musicPacket.packet;
+    updatePacketStatus("SYNCを受信しました。profiles読み込み後にpreviewへ反映します。", "ok");
+    return;
+  }
   const nextProfile = state.profiles.find((profile) => profile.id === translation.profileId);
   if (nextProfile) state.activeId = nextProfile.id;
   state.controlState.controls = sanitizeControls({
@@ -274,7 +283,7 @@ function applyMusicPacketPreview() {
   state.controlState.controls.frame = translation.frameId;
   state.memory = { ...state.memory, barIndex: 0, lastPhraseAction: "lock" };
   state.activeView = "preview";
-  updatePacketStatus(`preview controlsへ反映しました。STARTは人間が押すまで鳴りません。`, "ok");
+  updatePacketStatus(options.message || `preview controlsへ反映しました。STARTは人間が押すまで鳴りません。`, "ok");
   render();
 }
 
@@ -283,6 +292,62 @@ function clearMusicPacket() {
   if (refs.musicPacketOutput) refs.musicPacketOutput.textContent = "まだ読んでいません。";
   state.musicPacket = { packet: null, translation: null };
   updatePacketStatus("Music JSONを貼ると、ドラム用の翻訳がここに出ます。");
+}
+
+function musicPacketFromStackPayload(payload) {
+  if (!payload || typeof payload !== "object") return null;
+  if (payload.packet && typeof payload.packet === "object" && payload.packet.source_repo === "Music") return payload.packet;
+  if (payload.source_repo === "Music") return payload;
+  return null;
+}
+
+function receiveMusicStackPacket(payload, source = "sync") {
+  const packet = musicPacketFromStackPayload(payload);
+  if (!packet) return false;
+  try {
+    const translation = translateMusicSessionPacket(packet);
+    state.musicPacket = { packet, translation, pendingSync: state.profiles.length ? null : packet };
+    if (refs.musicPacketInput) refs.musicPacketInput.value = JSON.stringify(packet, null, 2);
+    renderPacketTranslation(translation);
+    applyMusicPacketPreview({
+      message: `SYNC受信: ${escapeText(translation.source_session_id || source)} をpreview controlsへ反映しました。STARTは人間が押すまで鳴りません。`
+    });
+    return true;
+  } catch (error) {
+    updatePacketStatus(`SYNC packetを読めません: ${error.message}`, "error");
+    return false;
+  }
+}
+
+function readLatestMusicStackPacket() {
+  try {
+    const raw = window.localStorage?.getItem(MUSIC_STACK_PACKET_STORAGE_KEY);
+    if (!raw) return false;
+    return receiveMusicStackPacket(JSON.parse(raw), "latest");
+  } catch (error) {
+    updatePacketStatus(`latest SYNCを読めません: ${error.message}`, "error");
+    return false;
+  }
+}
+
+function setupMusicStackSyncReceiver() {
+  if (typeof window === "undefined") return;
+  try {
+    if (typeof window.BroadcastChannel === "function") {
+      const channel = new window.BroadcastChannel(MUSIC_STACK_CHANNEL_NAME);
+      channel.addEventListener("message", (event) => receiveMusicStackPacket(event.data, "broadcast"));
+    }
+  } catch (error) {
+    console.warn("[drum-floor] Music stack BroadcastChannel unavailable:", error);
+  }
+  window.addEventListener("storage", (event) => {
+    if (event.key !== MUSIC_STACK_PACKET_STORAGE_KEY || !event.newValue) return;
+    try {
+      receiveMusicStackPacket(JSON.parse(event.newValue), "storage");
+    } catch (error) {
+      updatePacketStatus(`storage SYNCを読めません: ${error.message}`, "error");
+    }
+  });
 }
 
 async function loadProfiles() {
@@ -306,6 +371,8 @@ async function loadProfiles() {
     state.controlState.controls = sanitizeControls(state.controlState.controls, activeProfile());
     state.currentFrame = syncFrameControl(activeProfile());
     render();
+    if (state.musicPacket.pendingSync) applyMusicPacketPreview({ message: "SYNC受信分をpreview controlsへ反映しました。STARTは人間が押すまで鳴りません。" });
+    else readLatestMusicStackPacket();
   } catch (error) {
     state.loadStatus = "読み込み失敗";
     renderLoadError(refs, state, error);
@@ -445,4 +512,5 @@ window.addEventListener("pagehide", () => {
   audioInput.stop();
 });
 
+setupMusicStackSyncReceiver();
 loadProfiles();

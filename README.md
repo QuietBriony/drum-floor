@@ -183,3 +183,17 @@ Design boundary:
 - EP-133 is an optional performance target.
 - OpenClaw is the future control plane, not the performer.
 - Human arms candidates before live use.
+
+## Music SYNC and drum-floor roles
+
+Music `SYNC` sends metadata only. It can shape drum-floor controls, but it does
+not start playback, record audio, send MIDI, arm Ableton, touch EP-133, or upload
+anything.
+
+- `drum-floor standalone`: open the drum-floor Pages UI. Music `SYNC` moves the
+  AI Live controls; press `再生` manually to hear synthetic drum preview.
+- `chill DRUMS`: open `chill/session.html`. chill owns piano, bass, flow, and
+  the START/PANIC buttons; drum-floor only supplies the soft pocket adapter.
+- `OpenClaw raw candidate`: use the Surface CLI path to generate and inspect
+  local MIDI candidates. This is separate from browser playback and never arms
+  live output automatically.

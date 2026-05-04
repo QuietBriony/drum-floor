@@ -246,7 +246,7 @@ function renderPacketTranslation(translation) {
 function readMusicPacket() {
   const raw = refs.musicPacketInput?.value.trim() || "";
   if (!raw) {
-    updatePacketStatus("Music JSONを貼ってください。", "error");
+    updatePacketStatus("SYNCが届かない時だけMusic JSONを貼ってください。", "error");
     return null;
   }
   try {
@@ -291,7 +291,7 @@ function clearMusicPacket() {
   if (refs.musicPacketInput) refs.musicPacketInput.value = "";
   if (refs.musicPacketOutput) refs.musicPacketOutput.textContent = "まだ読んでいません。";
   state.musicPacket = { packet: null, translation: null };
-  updatePacketStatus("Music JSONを貼ると、ドラム用の翻訳がここに出ます。");
+  updatePacketStatus("MusicでSYNCすると自動受信します。貼り付け欄はfallbackです。");
 }
 
 function musicPacketFromStackPayload(payload) {

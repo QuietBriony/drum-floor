@@ -42,22 +42,25 @@
 
       <section class="packet-panel" aria-label="Music packet receiver">
         <div class="packet-copy">
-          <p class="eyebrow">Music SYNC / JSON fallback</p>
-          <h2>Musicの瞬間を、ドラムの形にする。</h2>
-          <p>MusicでSYNCを押すと、このページのAI Live controlsが自動で寄ります。音は下のAI Liveで「再生」を押すまで鳴りません。JSON貼り付けはローカル開発用のfallbackです。</p>
+          <p class="eyebrow">Music SYNC</p>
+          <h2>SYNC後は、AI Liveで再生。</h2>
+          <p>MusicでSYNCするとドラムの構えが自動で寄ります。音を聴く時だけ、下のAI Liveで「再生」を押します。</p>
         </div>
         <div class="packet-box">
-          <label class="packet-field">
-            <span>Music JSON fallback</span>
-            <textarea id="music-packet-input" spellcheck="false" placeholder="{ &quot;source_repo&quot;: &quot;Music&quot;, ... }"></textarea>
-          </label>
-          <div class="packet-actions">
-            <button type="button" data-action="read-music-packet">読む</button>
-            <button type="button" data-action="apply-music-packet-preview">preview controlsへ反映</button>
-            <button type="button" data-action="clear-music-packet">消す</button>
-          </div>
           <div id="music-packet-status" class="packet-status">MusicでSYNCすると自動受信します。貼り付け欄はfallbackです。</div>
-          <pre id="music-packet-output" class="packet-output">まだ読んでいません。</pre>
+          <details>
+            <summary>JSON fallbackを開く</summary>
+            <label class="packet-field">
+              <span>Music JSON</span>
+              <textarea id="music-packet-input" spellcheck="false" placeholder="{ &quot;source_repo&quot;: &quot;Music&quot;, ... }"></textarea>
+            </label>
+            <div class="packet-actions">
+              <button type="button" data-action="read-music-packet">読む</button>
+              <button type="button" data-action="apply-music-packet-preview">preview controlsへ反映</button>
+              <button type="button" data-action="clear-music-packet">消す</button>
+            </div>
+            <pre id="music-packet-output" class="packet-output">まだ読んでいません。</pre>
+          </details>
         </div>
       </section>
 
@@ -81,13 +84,8 @@
           </div>
 
           <div class="tabbar" role="tablist" aria-label="profile表示切り替え">
-            <button class="tab-button" type="button" data-view="profile">プロフィール</button>
-            <button class="tab-button" type="button" data-view="translation">ドラムフィール</button>
-            <button class="tab-button is-active" type="button" data-view="preview">AI Live</button>
-            <button class="tab-button" type="button" data-view="policy">制御ポリシー</button>
+            <button class="tab-button is-active" type="button" data-view="preview">AI Live / 再生</button>
             <button class="tab-button" type="button" data-view="manual">使い方</button>
-            <button class="tab-button" type="button" data-view="status">開発状況</button>
-            <button class="tab-button" type="button" data-view="roadmap">次の方向</button>
           </div>
 
           <div class="view-stack">

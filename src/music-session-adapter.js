@@ -83,6 +83,8 @@ function estimateBpm(packet, density, pressure) {
 export function translateMusicSessionPacket(packet, options = {}) {
   const routing = asObject(packet?.routing);
   const drum = asObject(routing.drum_floor);
+  const openclaw = asObject(routing.openclaw);
+  const nextAction = asObject(openclaw.next_action);
   const ucm = asObject(packet?.ucm_state);
   const gradient = asObject(packet?.reference_gradient?.weights);
   const density = unit(drum.density, percent(ucm.energy, 30) / 100);
@@ -133,9 +135,17 @@ export function translateMusicSessionPacket(packet, options = {}) {
       density,
       pressure,
       ghost_notes: unit(asObject(drum.groove_intent).ghost_notes, ghost),
-      micro
+      micro,
+      review_reason: String(drum.review_reason || "Music packetから作る手動preview候補。")
     },
-    fingerprint: hashString(JSON.stringify({ profileId, frameId, controls })).toString(16),
+    stack_route: {
+      destination: String(nextAction.destination || ""),
+      label: String(nextAction.label || ""),
+      reason: String(nextAction.reason || ""),
+      action: String(nextAction.action || ""),
+      recommended_here: String(nextAction.destination || "") === "drum_floor"
+    },
+    fingerprint: hashString(JSON.stringify({ profileId, frameId, controls, nextAction })).toString(16),
     safety: {
       stores_audio: false,
       stores_samples: false,

@@ -10,6 +10,8 @@ export class AudioEngine {
     this.roomDelay = null;
     this.roomFilter = null;
     this.roomGain = null;
+    this.bodyFilter = null;
+    this.bodyGain = null;
   }
 
   ensure() {
@@ -29,12 +31,19 @@ export class AudioEngine {
     this.roomDelay = this.audioContext.createDelay(0.08);
     this.roomFilter = this.audioContext.createBiquadFilter();
     this.roomGain = this.audioContext.createGain();
-    this.roomDelay.delayTime.value = 0.026;
+    this.bodyFilter = this.audioContext.createBiquadFilter();
+    this.bodyGain = this.audioContext.createGain();
+    this.roomDelay.delayTime.value = 0.031;
     this.roomFilter.type = "bandpass";
-    this.roomFilter.frequency.value = 1150;
-    this.roomFilter.Q.value = 0.72;
-    this.roomGain.gain.value = 0.18;
+    this.roomFilter.frequency.value = 980;
+    this.roomFilter.Q.value = 0.64;
+    this.roomGain.gain.value = 0.16;
+    this.bodyFilter.type = "bandpass";
+    this.bodyFilter.frequency.value = 190;
+    this.bodyFilter.Q.value = 0.82;
+    this.bodyGain.gain.value = 0.055;
     this.roomDelay.connect(this.roomFilter).connect(this.roomGain).connect(this.compressor);
+    this.bodyFilter.connect(this.bodyGain).connect(this.compressor);
     this.master.connect(this.compressor).connect(this.destination || this.audioContext.destination);
     return this.audioContext;
   }
@@ -68,12 +77,17 @@ export class AudioEngine {
     return gain;
   }
 
-  connectVoice(node, roomAmount = 0) {
+  connectVoice(node, roomAmount = 0, bodyAmount = 0) {
     node.connect(this.master);
     if (this.roomDelay && roomAmount > 0) {
       const send = this.audioContext.createGain();
       send.gain.value = Math.min(0.24, Math.max(0, roomAmount));
       node.connect(send).connect(this.roomDelay);
+    }
+    if (this.bodyFilter && bodyAmount > 0) {
+      const send = this.audioContext.createGain();
+      send.gain.value = Math.min(0.14, Math.max(0, bodyAmount));
+      node.connect(send).connect(this.bodyFilter);
     }
   }
 
@@ -98,7 +112,7 @@ export class AudioEngine {
     source.stop(time + duration + 0.07);
   }
 
-  acousticNoise(time, velocity, filterType, frequency, duration, q, roomAmount = 0) {
+  acousticNoise(time, velocity, filterType, frequency, duration, q, roomAmount = 0, bodyAmount = 0) {
     const source = this.audioContext.createBufferSource();
     const filter = this.audioContext.createBiquadFilter();
     const gain = this.linearEnvelope(time, velocity, 0.002, duration);
@@ -107,19 +121,19 @@ export class AudioEngine {
     filter.frequency.setValueAtTime(frequency, time);
     filter.Q.value = q;
     source.connect(filter).connect(gain);
-    this.connectVoice(gain, roomAmount);
+    this.connectVoice(gain, roomAmount, bodyAmount);
     source.start(time);
     source.stop(time + duration + 0.08);
   }
 
-  struckTone(time, velocity, frequency, duration, type = "triangle", roomAmount = 0) {
+  struckTone(time, velocity, frequency, duration, type = "triangle", roomAmount = 0, bodyAmount = 0) {
     const osc = this.audioContext.createOscillator();
     const gain = this.linearEnvelope(time, velocity, 0.002, duration);
     osc.type = type;
     osc.frequency.setValueAtTime(frequency, time);
     osc.frequency.exponentialRampToValueAtTime(Math.max(40, frequency * 0.82), time + duration * 0.7);
     osc.connect(gain);
-    this.connectVoice(gain, roomAmount);
+    this.connectVoice(gain, roomAmount, bodyAmount);
     osc.start(time);
     osc.stop(time + duration + 0.03);
   }
@@ -128,12 +142,35 @@ export class AudioEngine {
     return kit?.model === "hard_bop_room";
   }
 
+  eventVelocity(part, velocity, densityScore = 0) {
+    const density = Math.min(1, Math.max(0, Number(densityScore) || 0));
+    const maxByPart = {
+      kick: 0.92,
+      snare: 0.96,
+      hat: 0.7,
+      ghost: 0.48,
+      fill: 0.84,
+      crash: 0.72,
+    };
+    const trimByPart = {
+      kick: 1 - density * 0.08,
+      snare: 1 - density * 0.05,
+      hat: 1 - density * 0.16,
+      ghost: 1 - density * 0.08,
+      fill: 1 - density * 0.1,
+      crash: 1 - density * 0.18,
+    };
+    const max = maxByPart[part] ?? 0.9;
+    const trim = trimByPart[part] ?? 1;
+    return Math.min(max, Math.max(0.001, velocity * trim));
+  }
+
   kick(time, velocity, kit) {
     if (this.isHardBop(kit)) {
       const loudness = Math.min(1.2, Math.max(0.05, velocity));
-      this.struckTone(time, kit.kick.peak * loudness, kit.kick.start, kit.kick.decay, kit.kick.tone, kit.kick.room * (0.7 + loudness * 0.5));
+      this.struckTone(time, kit.kick.peak * loudness, kit.kick.start, kit.kick.decay, kit.kick.tone, kit.kick.room * (0.7 + loudness * 0.5), kit.kick.room * 0.55);
       this.acousticNoise(time + 0.001, kit.kick.beater * loudness, "bandpass", 2800 + loudness * 900, 0.024, 2.1, 0.025);
-      if (kit.kick.sub) this.struckTone(time + 0.006, kit.kick.sub * loudness, kit.kick.end * 0.72, kit.kick.decay * 1.4, "sine", kit.kick.room * 0.6);
+      if (kit.kick.sub) this.struckTone(time + 0.006, kit.kick.sub * loudness, kit.kick.end * 0.72, kit.kick.decay * 1.25, "sine", kit.kick.room * 0.42, kit.kick.room * 0.34);
       return;
     }
     const osc = this.audioContext.createOscillator();
@@ -174,10 +211,10 @@ export class AudioEngine {
         this.snare(time - 0.018, velocity * 0.36, kit, false, "drag");
       }
       this.acousticNoise(time, kit.snare.stick * loudness, "highpass", 3100 + loudness * 1000, 0.028, 1.6, room * 0.25);
-      this.struckTone(time + 0.001, kit.snare.body * loudness, 190 - loudness * 20, 0.11 + loudness * 0.025, "triangle", room);
+      this.struckTone(time + 0.001, kit.snare.body * loudness, 190 - loudness * 20, 0.11 + loudness * 0.025, "triangle", room, room * 0.36);
       this.acousticNoise(time + 0.004, kit.snare.noise * loudness, "bandpass", kit.snare.filter + loudness * 700, kit.snare.decay + loudness * 0.035, 2.4, room);
       this.acousticNoise(time + 0.012, kit.snare.rattle * loudness * (articulation === "buzz" ? 1.35 : 1), "highpass", 5200 + loudness * 1400, (articulation === "buzz" ? 0.18 : 0.11) + loudness * 0.045, 0.9, room * 0.85);
-      this.acousticNoise(time + 0.018, kit.snare.shell * loudness, "bandpass", 620, 0.1, 0.7, room * 0.7);
+      this.acousticNoise(time + 0.018, kit.snare.shell * loudness, "bandpass", 620, 0.1, 0.7, room * 0.7, room * 0.32);
       if (rim && kit.snare.rim) this.acousticNoise(time + 0.002, kit.snare.rim * loudness, "highpass", 3900, 0.042, 1.2, room * 0.35);
       return;
     }
@@ -247,14 +284,16 @@ export class AudioEngine {
     const context = this.ensure();
     const kit = kitPresets[controls.kit] || kitPresets.tight_band;
     const stepDuration = 60 / controls.bpm / 4;
+    const densityScore = generatedBar.stats?.densityScore ?? 0;
     generatedBar.events.forEach((event) => {
       const time = startTime + Math.max(0, event.step * stepDuration + (event.microOffsetMs || 0) / 1000);
-      if (event.part === "kick") this.kick(time, event.velocity, kit);
-      if (event.part === "snare") this.snare(time, event.velocity, kit, event.reason.includes("rim") || event.articulation === "rim", event.articulation || "stick");
-      if (event.part === "hat") this.hat(time, event.velocity, kit, event.step === 14 && generatedBar.stats.densityScore > 0.52, event.articulation || "ride_tip");
-      if (event.part === "ghost") this.ghost(time, event.velocity, kit, event.articulation || "brush");
-      if (event.part === "fill") this.fill(time, event.velocity, kit, event.articulation || "drag");
-      if (event.part === "crash") this.crash(time, event.velocity, kit);
+      const velocity = this.eventVelocity(event.part, event.velocity, densityScore);
+      if (event.part === "kick") this.kick(time, velocity, kit);
+      if (event.part === "snare") this.snare(time, velocity, kit, event.reason.includes("rim") || event.articulation === "rim", event.articulation || "stick");
+      if (event.part === "hat") this.hat(time, velocity, kit, event.step === 14 && densityScore > 0.52, event.articulation || "ride_tip");
+      if (event.part === "ghost") this.ghost(time, velocity, kit, event.articulation || "brush");
+      if (event.part === "fill") this.fill(time, velocity, kit, event.articulation || "drag");
+      if (event.part === "crash") this.crash(time, velocity, kit);
     });
     return context;
   }

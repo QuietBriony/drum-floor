@@ -327,7 +327,7 @@ function renderQuickStartCard(profile, controls, frame) {
       <div><strong>2</strong><span>kit</span><b>${escapeHtml(kitPresets[controls.kit].label)}</b></div>
       <div><strong>3</strong><span>pocket</span><b>${escapeHtml(frame?.label || "Auto")}</b></div>
     </div>
-    <p class="card-copy compact-copy">音を聴くなら、まず <strong>再生</strong>。変えるのは kit / pocket / energy / space だけで十分です。</p>`, true);
+    <p class="card-copy compact-copy">音を聴くなら、まず <strong>再生</strong>。最初に変えるのは <strong>kit / pocket</strong> だけで十分です。</p>`, true);
 }
 
 function renderMusicSyncRoleCard(state) {
@@ -349,20 +349,12 @@ function renderMusicSyncRoleCard(state) {
 }
 
 function renderCoreControls(profile, controls, frame, state) {
-  const sections = sectionOptions(profile);
-  return card("演奏コントロール", `
+  return card("聴く準備", `
     <div class="simple-control-grid">
-      <label class="control-field"><span>section <strong>${escapeHtml(controls.section)}</strong></span><select data-control="section">${sections.map((section) => `<option value="${escapeHtml(section)}"${section === controls.section ? " selected" : ""}>${escapeHtml(section)}</option>`).join("")}</select></label>
       <label class="control-field"><span>kit <strong>${escapeHtml(kitPresets[controls.kit].label)}</strong></span><select data-control="kit">${Object.entries(kitPresets).map(([id, kit]) => `<option value="${escapeHtml(id)}"${id === controls.kit ? " selected" : ""}>${escapeHtml(kit.label)}</option>`).join("")}</select></label>
       <label class="control-field"><span>pocket <strong>${escapeHtml(frame?.label || "auto")}</strong></span><select data-control="frame">${(state.patternFrames || []).map((item) => `<option value="${escapeHtml(item.id)}"${item.id === frame?.id ? " selected" : ""}>${escapeHtml(item.label)}</option>`).join("")}</select></label>
-      ${phraseLengthControl(controls)}
-      ${controlRange("bpm", "BPM", controls, 54, 190)}
-      ${controlRange("energy", "熱量", controls, 0, 100)}
-      ${controlRange("space", "間", controls, 0, 100)}
-      ${controlRange("lift", "持ち上げ", controls, 0, 100)}
-      ${controlRange("density", "手数", controls, 0, 100)}
-      ${controlRange("fillDemand", "フィル", controls, 0, 100)}
-    </div>`, true);
+    </div>
+    <p class="card-copy compact-copy">BPM / 熱量 / 手数 / フィルは、Music SYNCか開発パネル側に任せます。</p>`, true);
 }
 
 function renderAdvancedControls(profile, controls, frame, state) {
@@ -409,25 +401,31 @@ function renderPreviewView(profile, state) {
   const stats = bar.stats;
   const showAdvanced = controls.liveMode;
   const modeLabel = showAdvanced ? "演奏画面に戻る" : "開発パネルを表示";
-  return `<div class="grid${showAdvanced ? " live-grid" : " simple-live-grid"}">
-    ${card("AI Live Groove Co-player", `
-      <p class="card-copy">まずは <strong>kit</strong> と <strong>pocket</strong> を選んで再生。細かい評価やCLI連携は開発パネルに畳んでいます。</p>
-      <div class="preview-controls live-controls">
+  const liveButtons = showAdvanced ? `
         <button class="preview-button" type="button" data-action="start">${state.playback.isPlaying ? "再スタート" : "再生"}</button>
         <button class="preview-button secondary" type="button" data-action="stop">停止</button>
         <button class="preview-button danger" type="button" data-action="panic">緊急停止</button>
         <button class="preview-button secondary" type="button" data-action="tap">Tap tempo</button>
         <button class="preview-button secondary" type="button" data-action="variation">Variation更新</button>
-        <button class="preview-button secondary" type="button" data-action="live-toggle">${modeLabel}</button>
+        <button class="preview-button secondary" type="button" data-action="live-toggle">${modeLabel}</button>`
+    : `
+        <button class="preview-button" type="button" data-action="start">${state.playback.isPlaying ? "再スタート" : "再生"}</button>
+        <button class="preview-button secondary" type="button" data-action="stop">停止</button>
+        <button class="preview-button secondary" type="button" data-action="live-toggle">${modeLabel}</button>`;
+  return `<div class="grid${showAdvanced ? " live-grid" : " simple-live-grid"}">
+    ${card("AI Live Groove Co-player", `
+      <p class="card-copy">まずは <strong>再生</strong>。必要なら <strong>kit / pocket</strong> だけ変える。細かい調整は開発パネルに畳んでいます。</p>
+      <div class="preview-controls live-controls">
+        ${liveButtons}
         <span class="preview-state">${state.playback.isPlaying ? "再生中" : "停止中"} / bar ${bar.barIndex} / ${controls.bpm} BPM</span>
       </div>`, true)}
     ${renderMusicSyncRoleCard(state)}
     ${renderQuickStartCard(profile, controls, frame)}
     ${showAdvanced ? renderAdvancedControls(profile, controls, frame, state) : renderCoreControls(profile, controls, frame, state)}
     ${renderFeelCard(decision, stats, controls, bar)}
-    ${renderPatternFrameSummary(frame)}
-    ${renderPhraseFlow(bar)}
-    ${card("今の1小節 / 16 step", `<div class="step-grid">${renderStepGrid(bar)}</div>`, true)}
+    ${showAdvanced ? renderPatternFrameSummary(frame) : ""}
+    ${showAdvanced ? renderPhraseFlow(bar) : ""}
+    ${showAdvanced ? card("今の1小節 / 16 step", `<div class="step-grid">${renderStepGrid(bar)}</div>`, true) : ""}
     ${showAdvanced ? renderMixHints(frame) : ""}
     ${showAdvanced ? card("AI判断", `
       ${meter("space", decision.spaceIntent, `${Math.round(decision.spaceIntent * 100)}% / 間`) }

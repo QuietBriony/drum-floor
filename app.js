@@ -5,6 +5,7 @@ import { defaultBandInputFrame, defaultControls, sanitizeControls } from "./src/
 import { generateGrooveBar } from "./src/groove-engine.js";
 import { createControlState, randomizeVariation, tapTempo, updateControl } from "./src/manual-controls.js";
 import { MidiOutput } from "./src/midi-output.js";
+import { translateMusicSessionPacket } from "./src/music-session-adapter.js";
 import { renderAll, renderLoadError } from "./src/ui-render.js?v=organic-flow-v1";
 
 const refs = {
@@ -13,6 +14,9 @@ const refs = {
   profileId: document.querySelector("#profile-id"),
   profileLabel: document.querySelector("#profile-label"),
   profileDescription: document.querySelector("#profile-description"),
+  musicPacketInput: document.querySelector("#music-packet-input"),
+  musicPacketStatus: document.querySelector("#music-packet-status"),
+  musicPacketOutput: document.querySelector("#music-packet-output"),
   tabs: [...document.querySelectorAll(".tab-button")],
   views: {
     profile: document.querySelector("#view-profile"),
@@ -96,7 +100,11 @@ const state = {
     acceptanceCondition: "The next generated candidate should keep fill density low and improve ghost continuity without making hats busier.",
     rollbackStrategy: "Open a normal PR restoring the previous value if listening gets cluttered."
   },
-  copyStatus: ""
+  copyStatus: "",
+  musicPacket: {
+    translation: null,
+    packet: null
+  }
 };
 
 function activeProfile() {
@@ -208,6 +216,75 @@ function setActiveView(view) {
   renderAll(refs, state);
 }
 
+function escapeText(value) {
+  return String(value ?? "");
+}
+
+function updatePacketStatus(message, type = "") {
+  if (!refs.musicPacketStatus) return;
+  refs.musicPacketStatus.textContent = message;
+  refs.musicPacketStatus.classList.toggle("is-ok", type === "ok");
+  refs.musicPacketStatus.classList.toggle("is-error", type === "error");
+}
+
+function renderPacketTranslation(translation) {
+  if (!refs.musicPacketOutput) return;
+  refs.musicPacketOutput.textContent = JSON.stringify({
+    source_session_id: translation.source_session_id,
+    profile: translation.profileId,
+    frame: translation.frameId,
+    controls: translation.controls,
+    intent: translation.intent,
+    safety: translation.safety
+  }, null, 2);
+}
+
+function readMusicPacket() {
+  const raw = refs.musicPacketInput?.value.trim() || "";
+  if (!raw) {
+    updatePacketStatus("Music JSONを貼ってください。", "error");
+    return null;
+  }
+  try {
+    const packet = JSON.parse(raw);
+    const translation = translateMusicSessionPacket(packet);
+    state.musicPacket = { packet, translation };
+    renderPacketTranslation(translation);
+    updatePacketStatus(`OK: ${escapeText(translation.source_session_id || "Music packet")} を ${translation.profileId} / ${translation.frameId} へ翻訳しました。`, "ok");
+    return translation;
+  } catch (error) {
+    state.musicPacket = { packet: null, translation: null };
+    if (refs.musicPacketOutput) refs.musicPacketOutput.textContent = "読めませんでした。JSON形式を確認してください。";
+    updatePacketStatus(`JSONを読めません: ${error.message}`, "error");
+    return null;
+  }
+}
+
+function applyMusicPacketPreview() {
+  const translation = state.musicPacket.translation || readMusicPacket();
+  if (!translation) return;
+  const nextProfile = state.profiles.find((profile) => profile.id === translation.profileId);
+  if (nextProfile) state.activeId = nextProfile.id;
+  state.controlState.controls = sanitizeControls({
+    ...state.controlState.controls,
+    ...translation.controls,
+    midiEnabled: false,
+    liveMode: false
+  }, activeProfile());
+  state.controlState.controls.frame = translation.frameId;
+  state.memory = { ...state.memory, barIndex: 0, lastPhraseAction: "lock" };
+  state.activeView = "preview";
+  updatePacketStatus(`preview controlsへ反映しました。STARTは人間が押すまで鳴りません。`, "ok");
+  render();
+}
+
+function clearMusicPacket() {
+  if (refs.musicPacketInput) refs.musicPacketInput.value = "";
+  if (refs.musicPacketOutput) refs.musicPacketOutput.textContent = "まだ読んでいません。";
+  state.musicPacket = { packet: null, translation: null };
+  updatePacketStatus("Music JSONを貼ると、ドラム用の翻訳がここに出ます。");
+}
+
 async function loadProfiles() {
   try {
     const [profileResponse, frameResponse] = await Promise.all([
@@ -299,6 +376,9 @@ document.addEventListener("click", (event) => {
     }
     render();
   }
+  if (action === "read-music-packet") readMusicPacket();
+  if (action === "apply-music-packet-preview") applyMusicPacketPreview();
+  if (action === "clear-music-packet") clearMusicPacket();
 });
 
 document.addEventListener("click", (event) => {

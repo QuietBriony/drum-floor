@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Drum Floor | バンド用グルーブ生成プロファイル</title>
-    <link rel="stylesheet" href="style.css?v=organic-flow-v1" />
+    <link rel="stylesheet" href="style.css?v=music-packet-receiver" />
   </head>
   <body>
     <header class="topbar">
@@ -37,6 +37,27 @@
           <span>サンプルなし</span>
           <span>音声保存なし</span>
           <span>緊急停止</span>
+        </div>
+      </section>
+
+      <section class="packet-panel" aria-label="Music packet receiver">
+        <div class="packet-copy">
+          <p class="eyebrow">Music JSON receiver</p>
+          <h2>Musicの瞬間を、ドラムの形にする。</h2>
+          <p>OpenClawやMusicから出したmetadata-only JSONを貼ると、drum-floor用のprofile / frame / kit / controlsへ翻訳します。音声保存、録音、arm、MIDI送信はしません。</p>
+        </div>
+        <div class="packet-box">
+          <label class="packet-field">
+            <span>Music JSON</span>
+            <textarea id="music-packet-input" spellcheck="false" placeholder="{ &quot;source_repo&quot;: &quot;Music&quot;, ... }"></textarea>
+          </label>
+          <div class="packet-actions">
+            <button type="button" data-action="read-music-packet">読む</button>
+            <button type="button" data-action="apply-music-packet-preview">preview controlsへ反映</button>
+            <button type="button" data-action="clear-music-packet">消す</button>
+          </div>
+          <div id="music-packet-status" class="packet-status">Music JSONを貼ると、ドラム用の翻訳がここに出ます。</div>
+          <pre id="music-packet-output" class="packet-output">まだ読んでいません。</pre>
         </div>
       </section>
 
@@ -82,6 +103,6 @@
       </section>
     </main>
 
-    <script type="module" src="app.js?v=organic-flow-v1"></script>
+    <script type="module" src="app.js?v=music-packet-receiver"></script>
   </body>
 </html>

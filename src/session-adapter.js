@@ -2,6 +2,7 @@ import { createGrooveDecision, createManualIntent, updatePhraseMemory } from "./
 import { defaultBandInputFrame, defaultControls, hashString, sanitizeControls } from "./contracts.js";
 import { generateGrooveBar } from "./groove-engine.js";
 import { AudioEngine } from "./audio-engine.js";
+import { translateMusicSessionPacket } from "./music-session-adapter.js";
 
 const DEFAULT_SESSION = Object.freeze({
   bpm: 72,
@@ -198,6 +199,32 @@ export function createDrumFloorSessionAdapter(options = {}) {
     return snapshot();
   }
 
+  function applyMusicSessionPacket(packet, options = {}) {
+    const translation = translateMusicSessionPacket(packet, options);
+    setSession({
+      profileId: translation.profileId,
+      frameId: translation.frameId,
+      kit: translation.controls.kit,
+      bpm: translation.controls.bpm,
+      energy: translation.controls.energy,
+      density: translation.controls.density,
+      swing: translation.controls.swing,
+      humanize: translation.controls.humanize,
+      space: translation.controls.space,
+      section: translation.controls.section,
+      fillDemand: translation.controls.fillDemand,
+      crashGate: translation.controls.crashGate,
+      seed: hashString(`${translation.source_session_id}:${translation.fingerprint}`),
+    });
+    state.status = "music-packet-applied";
+    return {
+      applied: true,
+      review_only: true,
+      translation,
+      snapshot: snapshot(),
+    };
+  }
+
   function scheduleBar(options = {}) {
     if (!state.loaded) return { scheduled: false, bar: null, reason: "not-loaded" };
     const context = audioEngine.ensure();
@@ -263,6 +290,7 @@ export function createDrumFloorSessionAdapter(options = {}) {
     stop,
     panic,
     setSession,
+    applyMusicSessionPacket,
     scheduleBar,
     previewBar,
     snapshot,

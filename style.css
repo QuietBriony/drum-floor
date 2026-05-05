@@ -249,6 +249,61 @@ h3 {
   color: var(--brick);
 }
 
+.role-panel {
+  background: rgba(255, 250, 240, 0.72);
+  border: 1px solid rgba(36, 37, 33, 0.16);
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
+  padding: clamp(16px, 3vw, 24px);
+}
+
+.role-copy p {
+  color: var(--muted);
+  line-height: 1.55;
+  max-width: 54ch;
+}
+
+.role-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.role-card {
+  background: rgba(255, 250, 240, 0.78);
+  border: 1px solid rgba(36, 37, 33, 0.14);
+  display: grid;
+  gap: 8px;
+  min-height: 154px;
+  padding: 13px;
+}
+
+.role-card.is-primary {
+  border-color: rgba(169, 72, 50, 0.42);
+  background: rgba(169, 72, 50, 0.08);
+}
+
+.role-card strong {
+  color: var(--coal);
+  font-size: 1rem;
+}
+
+.role-card span {
+  color: var(--brick);
+  font-family: "Trebuchet MS", Verdana, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.role-card p {
+  color: var(--muted);
+  line-height: 1.48;
+  margin: 0;
+}
+
 .workbench {
   background: rgba(255, 250, 240, 0.62);
   border: 1px solid rgba(36, 37, 33, 0.16);
@@ -886,7 +941,12 @@ code {
 
   .hero,
   .packet-panel,
+  .role-panel,
   .workbench {
+    grid-template-columns: 1fr;
+  }
+
+  .role-grid {
     grid-template-columns: 1fr;
   }
 

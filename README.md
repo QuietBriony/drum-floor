@@ -197,3 +197,7 @@ anything.
 - `OpenClaw raw candidate`: use the Surface CLI path to generate and inspect
   local MIDI candidates. This is separate from browser playback and never arms
   live output automatically.
+
+The Pages top screen now mirrors these three roles as cards. Use the highlighted
+standalone card when you want sound from this page; use the other two cards as
+route reminders.

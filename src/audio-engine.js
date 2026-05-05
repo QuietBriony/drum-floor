@@ -6,6 +6,8 @@ export class AudioEngine {
     this.destination = options.destination || null;
     this.masterLevel = Number.isFinite(options.gain) ? options.gain : 0.38;
     this.master = null;
+    this.masterHighpass = null;
+    this.masterShelf = null;
     this.compressor = null;
     this.roomDelay = null;
     this.roomFilter = null;
@@ -28,6 +30,14 @@ export class AudioEngine {
     this.compressor.release.value = 0.16;
     this.master = this.audioContext.createGain();
     this.master.gain.value = this.masterLevel;
+    this.masterHighpass = this.audioContext.createBiquadFilter();
+    this.masterHighpass.type = "highpass";
+    this.masterHighpass.frequency.value = 34;
+    this.masterHighpass.Q.value = 0.7;
+    this.masterShelf = this.audioContext.createBiquadFilter();
+    this.masterShelf.type = "highshelf";
+    this.masterShelf.frequency.value = 6200;
+    this.masterShelf.gain.value = -1.8;
     this.roomDelay = this.audioContext.createDelay(0.08);
     this.roomFilter = this.audioContext.createBiquadFilter();
     this.roomGain = this.audioContext.createGain();
@@ -37,14 +47,18 @@ export class AudioEngine {
     this.roomFilter.type = "bandpass";
     this.roomFilter.frequency.value = 980;
     this.roomFilter.Q.value = 0.64;
-    this.roomGain.gain.value = 0.16;
+    this.roomGain.gain.value = 0.18;
     this.bodyFilter.type = "bandpass";
     this.bodyFilter.frequency.value = 190;
     this.bodyFilter.Q.value = 0.82;
-    this.bodyGain.gain.value = 0.055;
+    this.bodyGain.gain.value = 0.065;
     this.roomDelay.connect(this.roomFilter).connect(this.roomGain).connect(this.compressor);
     this.bodyFilter.connect(this.bodyGain).connect(this.compressor);
-    this.master.connect(this.compressor).connect(this.destination || this.audioContext.destination);
+    this.master
+      .connect(this.masterHighpass)
+      .connect(this.masterShelf)
+      .connect(this.compressor)
+      .connect(this.destination || this.audioContext.destination);
     return this.audioContext;
   }
 
@@ -142,24 +156,29 @@ export class AudioEngine {
     return kit?.model === "hard_bop_room";
   }
 
-  eventVelocity(part, velocity, densityScore = 0) {
+  eventVelocity(part, velocity, densityScore = 0, kit = null) {
     const density = Math.min(1, Math.max(0, Number(densityScore) || 0));
-    const maxByPart = {
-      kick: 0.92,
-      snare: 0.96,
-      hat: 0.7,
-      ghost: 0.48,
-      fill: 0.84,
-      crash: 0.72,
-    };
-    const trimByPart = {
-      kick: 1 - density * 0.08,
-      snare: 1 - density * 0.05,
-      hat: 1 - density * 0.16,
-      ghost: 1 - density * 0.08,
-      fill: 1 - density * 0.1,
-      crash: 1 - density * 0.18,
-    };
+    const hardBop = this.isHardBop(kit);
+    const maxByPart = hardBop
+      ? {
+          kick: 0.82,
+          snare: 0.86,
+          hat: 0.58,
+          ghost: 0.4,
+          fill: 0.72,
+          crash: 0.6,
+        }
+      : { kick: 0.92, snare: 0.96, hat: 0.7, ghost: 0.48, fill: 0.84, crash: 0.72 };
+    const trimByPart = hardBop
+      ? {
+          kick: 1 - density * 0.1,
+          snare: 1 - density * 0.08,
+          hat: 1 - density * 0.22,
+          ghost: 1 - density * 0.12,
+          fill: 1 - density * 0.14,
+          crash: 1 - density * 0.22,
+        }
+      : { kick: 1 - density * 0.08, snare: 1 - density * 0.05, hat: 1 - density * 0.16, ghost: 1 - density * 0.08, fill: 1 - density * 0.1, crash: 1 - density * 0.18 };
     const max = maxByPart[part] ?? 0.9;
     const trim = trimByPart[part] ?? 1;
     return Math.min(max, Math.max(0.001, velocity * trim));
@@ -287,7 +306,7 @@ export class AudioEngine {
     const densityScore = generatedBar.stats?.densityScore ?? 0;
     generatedBar.events.forEach((event) => {
       const time = startTime + Math.max(0, event.step * stepDuration + (event.microOffsetMs || 0) / 1000);
-      const velocity = this.eventVelocity(event.part, event.velocity, densityScore);
+      const velocity = this.eventVelocity(event.part, event.velocity, densityScore, kit);
       if (event.part === "kick") this.kick(time, velocity, kit);
       if (event.part === "snare") this.snare(time, velocity, kit, event.reason.includes("rim") || event.articulation === "rim", event.articulation || "stick");
       if (event.part === "hat") this.hat(time, velocity, kit, event.step === 14 && densityScore > 0.52, event.articulation || "ride_tip");

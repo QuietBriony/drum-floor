@@ -244,6 +244,14 @@ function renderPacketTranslation(translation) {
   }, null, 2);
 }
 
+function musicPacketMicHint(translation) {
+  const mic = translation?.intent?.mic_follow;
+  if (!mic || !mic.enabled) return "";
+  const drive = Math.round(Number(mic.drive || 0) * 100);
+  const label = String(mic.gesture || "mic").toUpperCase();
+  return ` MIC ${label}${drive ? ` ${drive}%` : ""}を反映。`;
+}
+
 function readMusicPacket() {
   const raw = refs.musicPacketInput?.value.trim() || "";
   if (!raw) {
@@ -259,7 +267,7 @@ function readMusicPacket() {
     const routeHint = route?.label
       ? ` Music推奨: ${route.label}${route.recommended_here ? "。" : "。drum-floorは候補として反映。"}`
       : "";
-    updatePacketStatus(`OK: ${escapeText(translation.source_session_id || "Music packet")} を ${translation.profileId} / ${translation.frameId} へ翻訳しました。${escapeText(routeHint)}`, "ok");
+    updatePacketStatus(`OK: ${escapeText(translation.source_session_id || "Music packet")} を ${translation.profileId} / ${translation.frameId} へ翻訳しました。${escapeText(musicPacketMicHint(translation))}${escapeText(routeHint)}`, "ok");
     return translation;
   } catch (error) {
     state.musicPacket = { packet: null, translation: null };
@@ -292,7 +300,7 @@ function applyMusicPacketPreview(options = {}) {
   const routeHint = route?.label
     ? ` Music推奨: ${route.label}${route.recommended_here ? "。ここで再生。" : "。ここは候補preview。"}`
     : "";
-  updatePacketStatus(options.message || `preview controlsへ反映しました。再生は人間が押すまで鳴りません。${routeHint}`, "ok");
+  updatePacketStatus(options.message || `preview controlsへ反映しました。再生は人間が押すまで鳴りません。${musicPacketMicHint(translation)}${routeHint}`, "ok");
   render();
 }
 
@@ -323,7 +331,7 @@ function receiveMusicStackPacket(payload, source = "sync") {
       ? ` Music推奨: ${route.label}${route.recommended_here ? "。再生で確認できます。" : "。drum-floorは候補として反映しました。"}`
       : "";
     applyMusicPacketPreview({
-      message: `SYNC受信: ${escapeText(translation.source_session_id || source)} をpreview controlsへ反映しました。再生は人間が押すまで鳴りません。${escapeText(routeHint)}`
+      message: `SYNC受信: ${escapeText(translation.source_session_id || source)} をpreview controlsへ反映しました。再生は人間が押すまで鳴りません。${escapeText(musicPacketMicHint(translation))}${escapeText(routeHint)}`
     });
     return true;
   } catch (error) {

@@ -193,6 +193,9 @@ anything.
 
 - `drum-floor standalone`: open the drum-floor Pages UI. Music `SYNC` moves the
   AI Live controls; press `再生` manually to hear synthetic drum preview.
+- If Music `SYNC` includes `performance_state.mic_follow`, drum-floor reads only
+  metadata such as `gesture`, `drive`, `pulse`, `air`, and `bpm_lock` to shape
+  the preview. It never records microphone audio or starts playback by itself.
 - `chill DRUMS`: open `chill/session.html`. chill owns piano, bass, flow, and
   the START/PANIC buttons; drum-floor only supplies the soft pocket adapter.
 - `OpenClaw raw candidate`: use the Surface CLI path to generate and inspect

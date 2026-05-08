@@ -5,6 +5,7 @@ export class AudioEngine {
     this.audioContext = options.audioContext || null;
     this.destination = options.destination || null;
     this.masterLevel = Number.isFinite(options.gain) ? options.gain : 0.38;
+    this.softGlue = Math.min(1, Math.max(0, Number(options.softGlue) || 0));
     this.master = null;
     this.masterHighpass = null;
     this.masterShelf = null;
@@ -37,7 +38,7 @@ export class AudioEngine {
     this.masterShelf = this.audioContext.createBiquadFilter();
     this.masterShelf.type = "highshelf";
     this.masterShelf.frequency.value = 6200;
-    this.masterShelf.gain.value = -1.8;
+    this.masterShelf.gain.value = -1.8 - this.softGlue * 2.2;
     this.roomDelay = this.audioContext.createDelay(0.08);
     this.roomFilter = this.audioContext.createBiquadFilter();
     this.roomGain = this.audioContext.createGain();
@@ -47,7 +48,7 @@ export class AudioEngine {
     this.roomFilter.type = "bandpass";
     this.roomFilter.frequency.value = 980;
     this.roomFilter.Q.value = 0.64;
-    this.roomGain.gain.value = 0.18;
+    this.roomGain.gain.value = 0.18 + this.softGlue * 0.035;
     this.bodyFilter.type = "bandpass";
     this.bodyFilter.frequency.value = 190;
     this.bodyFilter.Q.value = 0.82;
@@ -159,14 +160,15 @@ export class AudioEngine {
   eventVelocity(part, velocity, densityScore = 0, kit = null) {
     const density = Math.min(1, Math.max(0, Number(densityScore) || 0));
     const hardBop = this.isHardBop(kit);
+    const glue = hardBop ? this.softGlue : 0;
     const maxByPart = hardBop
       ? {
-          kick: 0.82,
-          snare: 0.86,
-          hat: 0.58,
-          ghost: 0.4,
-          fill: 0.72,
-          crash: 0.6,
+          kick: 0.82 - glue * 0.06,
+          snare: 0.86 - glue * 0.16,
+          hat: 0.58 - glue * 0.2,
+          ghost: 0.4 - glue * 0.04,
+          fill: 0.72 - glue * 0.18,
+          crash: 0.6 - glue * 0.18,
         }
       : { kick: 0.92, snare: 0.96, hat: 0.7, ghost: 0.48, fill: 0.84, crash: 0.72 };
     const trimByPart = hardBop
@@ -181,7 +183,17 @@ export class AudioEngine {
       : { kick: 1 - density * 0.08, snare: 1 - density * 0.05, hat: 1 - density * 0.16, ghost: 1 - density * 0.08, fill: 1 - density * 0.1, crash: 1 - density * 0.18 };
     const max = maxByPart[part] ?? 0.9;
     const trim = trimByPart[part] ?? 1;
-    return Math.min(max, Math.max(0.001, velocity * trim));
+    const glueTrim = hardBop
+      ? {
+          kick: 1 - glue * 0.08,
+          snare: 1 - glue * 0.18,
+          hat: 1 - glue * 0.28,
+          ghost: 1 - glue * 0.08,
+          fill: 1 - glue * 0.22,
+          crash: 1 - glue * 0.24,
+        }[part] ?? 1
+      : 1;
+    return Math.min(max, Math.max(0.001, velocity * trim * glueTrim));
   }
 
   kick(time, velocity, kit) {
@@ -252,11 +264,13 @@ export class AudioEngine {
     if (this.isHardBop(kit)) {
       const loudness = Math.min(1.2, Math.max(0.04, velocity));
       const decay = open ? kit.hat.open : kit.hat.closed;
-      const room = kit.hat.room * (0.7 + loudness * 0.45);
+      const glue = this.softGlue;
+      const room = kit.hat.room * (0.7 + loudness * 0.45 + glue * 0.35);
       const bell = articulation === "ride_bell";
-      this.acousticNoise(time, kit.hat.ride * loudness * (bell ? 0.72 : 1), "bandpass", bell ? 4300 : 6100 + loudness * 1200, decay + loudness * (bell ? 0.12 : 0.06), bell ? 5.2 : 1.1, room);
-      this.acousticNoise(time + 0.004, kit.hat.clean * loudness, "highpass", kit.hat.filter + loudness * 900, decay * 0.55, 0.65, room * 0.45);
-      if (loudness > 0.48 || bell) this.acousticNoise(time + 0.007, kit.hat.bell * loudness * (bell ? 1.75 : 1), "bandpass", 3800, bell ? 0.16 : 0.08, 4.2, room * 0.4);
+      const rideFreq = bell ? 4100 - glue * 280 : 6100 + loudness * 900 - glue * 950;
+      this.acousticNoise(time, kit.hat.ride * loudness * (bell ? 0.62 : 1 - glue * 0.12), "bandpass", rideFreq, decay + loudness * (bell ? 0.12 : 0.06) + glue * 0.018, bell ? 4.4 : 0.9, room);
+      this.acousticNoise(time + 0.004, kit.hat.clean * loudness * (1 - glue * 0.18), "highpass", kit.hat.filter + loudness * 650 - glue * 900, decay * 0.55, 0.58, room * 0.5);
+      if (loudness > 0.56 || bell) this.acousticNoise(time + 0.007, kit.hat.bell * loudness * (bell ? 1.35 : 0.72), "bandpass", 3600 - glue * 260, bell ? 0.14 : 0.075, 3.4, room * 0.42);
       if (kit.hat.dirty) this.acousticNoise(time + 0.01, kit.hat.dirty * loudness, "bandpass", 2400, decay * 0.8, 0.8, room * 0.3);
       return;
     }

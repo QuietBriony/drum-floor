@@ -90,6 +90,7 @@ export function createDrumFloorSessionAdapter(options = {}) {
     audioContext: options.audioContext || null,
     destination: options.destination || null,
     gain: Number.isFinite(options.gain) ? options.gain : 0.18,
+    softGlue: Number.isFinite(options.softGlue) ? options.softGlue : 0,
   });
 
   const state = {

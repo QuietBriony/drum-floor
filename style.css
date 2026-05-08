@@ -179,9 +179,9 @@ h3 {
   border: 1px solid rgba(36, 37, 33, 0.16);
   box-shadow: var(--shadow);
   display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(0, 0.8fr) minmax(320px, 1.2fr);
-  padding: clamp(16px, 3vw, 26px);
+  gap: 12px;
+  grid-template-columns: minmax(0, 0.72fr) minmax(260px, 1fr);
+  padding: clamp(12px, 2vw, 18px);
 }
 
 .packet-copy p {
@@ -239,6 +239,18 @@ h3 {
   color: var(--muted);
   line-height: 1.45;
   padding: 10px;
+}
+
+.packet-play-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(36, 37, 33, 0.18);
+  background: var(--moss);
+  color: var(--paper-strong);
+  font-weight: 800;
+  text-decoration: none;
 }
 
 .packet-status.is-ok {
@@ -981,7 +993,12 @@ code {
   }
 
   .policy-strip {
-    grid-template-columns: 1fr;
+    display: none;
+  }
+
+  .packet-panel {
+    gap: 8px;
+    padding: 12px;
   }
 
   .kv {
@@ -993,11 +1010,15 @@ code {
   }
 
   h1 {
-    font-size: 1.9rem;
+    max-width: 100%;
+    font-size: 1.55rem;
+    line-height: 1.12;
+    overflow-wrap: anywhere;
     word-break: break-all;
   }
 
   h2 {
-    font-size: 2.1rem;
+    font-size: 1.45rem;
+    line-height: 1.14;
   }
 }

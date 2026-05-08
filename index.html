@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Drum Floor | バンド用グルーブ生成プロファイル</title>
-    <link rel="stylesheet" href="style.css?v=play-entry" />
+    <link rel="stylesheet" href="style.css?v=play-entry-2" />
   </head>
   <body>
     <header class="topbar">
@@ -48,6 +48,7 @@
         </div>
         <div class="packet-box">
           <div id="music-packet-status" class="packet-status">MusicでSYNCすると自動受信します。貼り付け欄はfallbackです。</div>
+          <a class="packet-play-link" href="#play">再生へ</a>
           <details>
             <summary>JSON fallbackを開く</summary>
             <label class="packet-field">
@@ -64,32 +65,7 @@
         </div>
       </section>
 
-      <section class="role-panel" aria-label="drum-floor roles">
-        <div class="role-copy">
-          <p class="eyebrow">3つの使い方</p>
-          <h2>ここで鳴らす時だけ、再生。</h2>
-          <p>drum-floorは場所によって役割が変わります。Music SYNC後に迷ったら、まずこの3つだけ見てください。</p>
-        </div>
-        <div class="role-grid">
-          <article class="role-card is-primary">
-            <strong>単独preview</strong>
-            <span>このページ</span>
-            <p>Music SYNCでkit/pocketが寄ります。音を聴く時は下の <b>再生</b> を押すだけ。</p>
-          </article>
-          <article class="role-card">
-            <strong>chill DRUMS</strong>
-            <span>chill/session.html</span>
-            <p>ピアノ、ベース、流れはchillが持ちます。drum-floorはsoft pocketとして従います。</p>
-          </article>
-          <article class="role-card">
-            <strong>raw candidate</strong>
-            <span>OpenClaw / Surface CLI</span>
-            <p>MIDI候補を作る別導線です。生成とinspectだけで、armや録音は人間が決めます。</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="workbench" aria-label="グルーブプロファイル作業台">
+      <section class="workbench" id="play" aria-label="グルーブプロファイル作業台">
         <aside class="selector-panel">
           <div class="panel-heading">
             <p class="eyebrow">style profile</p>
@@ -124,8 +100,33 @@
           </div>
         </section>
       </section>
+
+      <section class="role-panel" aria-label="drum-floor roles">
+        <div class="role-copy">
+          <p class="eyebrow">補足</p>
+          <h2>drum-floorの3役</h2>
+          <p>ふだんは上の <b>再生</b> だけ。必要な時だけ役割を確認します。</p>
+        </div>
+        <div class="role-grid">
+          <article class="role-card is-primary">
+            <strong>単独preview</strong>
+            <span>このページ</span>
+            <p>Music SYNCでkit/pocketが寄ります。音を聴く時は <b>再生</b>。</p>
+          </article>
+          <article class="role-card">
+            <strong>chill DRUMS</strong>
+            <span>chill/session.html</span>
+            <p>ピアノ、ベース、流れはchillが持ちます。</p>
+          </article>
+          <article class="role-card">
+            <strong>raw candidate</strong>
+            <span>OpenClaw / Surface CLI</span>
+            <p>MIDI候補を作る別導線。armや録音は人間が決めます。</p>
+          </article>
+        </div>
+      </section>
     </main>
 
-    <script type="module" src="app.js?v=mic-follow-sync-1"></script>
+    <script type="module" src="app.js?v=play-entry-2"></script>
   </body>
 </html>

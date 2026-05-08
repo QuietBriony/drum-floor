@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Drum Floor | バンド用グルーブ生成プロファイル</title>
-    <link rel="stylesheet" href="style.css?v=music-packet-receiver" />
+    <link rel="stylesheet" href="style.css?v=play-entry" />
   </head>
   <body>
     <header class="topbar">
@@ -30,7 +30,7 @@
         <div>
           <p class="eyebrow">AI co-player / local audio follow</p>
           <h1>バンドの爆発を、間から作る。</h1>
-          <p class="hero-copy">style profile、手動intent、ローカル音入力featuresから、AI Groove Co-playerが次のbarを判断する開発用Live UIです。</p>
+          <p class="hero-copy">Music SYNCを受けたら、ここでは合成ドラムpreviewを手動で鳴らします。迷ったら「再生」だけでOKです。</p>
         </div>
         <div class="policy-strip" aria-label="安全ポリシー">
           <span>AI co-player</span>
@@ -44,7 +44,7 @@
         <div class="packet-copy">
           <p class="eyebrow">Music SYNC</p>
           <h2>SYNC後は、まず再生。</h2>
-          <p>MusicでSYNCするとkit/pocketが自動で寄ります。最初はAI Liveの「再生」だけ。細かい調整は開発パネルに置いています。</p>
+          <p>MusicでSYNCするとkit/pocketが自動で寄ります。音はまだ始まりません。ここで聴く時だけ「再生」を押します。</p>
         </div>
         <div class="packet-box">
           <div id="music-packet-status" class="packet-status">MusicでSYNCすると自動受信します。貼り付け欄はfallbackです。</div>
@@ -109,7 +109,7 @@
           </div>
 
           <div class="tabbar" role="tablist" aria-label="profile表示切り替え">
-            <button class="tab-button is-active" type="button" data-view="preview">AI Live / 再生</button>
+            <button class="tab-button is-active" type="button" data-view="preview">再生</button>
             <button class="tab-button" type="button" data-view="manual">使い方</button>
           </div>
 
@@ -126,6 +126,6 @@
       </section>
     </main>
 
-    <script type="module" src="app.js?v=music-stack-sync-receiver"></script>
+    <script type="module" src="app.js?v=play-entry"></script>
   </body>
 </html>

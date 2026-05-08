@@ -334,7 +334,7 @@ function renderMusicSyncRoleCard(state) {
   const translation = state.musicPacket?.translation;
   const route = translation?.stack_route || {};
   if (!translation) {
-    return card("Music SYNC", `
+  return card("Music SYNC", `
       <p class="card-copy compact-copy">MusicでSYNCすると、ここは<strong>単独ドラムpreview</strong>として構えだけ受けます。音は<strong>再生</strong>まで鳴りません。</p>
       <p class="card-copy compact-copy">chill内のDRUMSはchillが流れを持つ別入口です。</p>`, true);
   }
@@ -402,14 +402,14 @@ function renderPreviewView(profile, state) {
   const showAdvanced = controls.liveMode;
   const modeLabel = showAdvanced ? "演奏画面に戻る" : "開発パネルを表示";
   const liveButtons = showAdvanced ? `
-        <button class="preview-button" type="button" data-action="start">${state.playback.isPlaying ? "再スタート" : "再生"}</button>
+        <button class="preview-button primary-play" type="button" data-action="start">${state.playback.isPlaying ? "再スタート" : "再生"}</button>
         <button class="preview-button secondary" type="button" data-action="stop">停止</button>
         <button class="preview-button danger" type="button" data-action="panic">緊急停止</button>
         <button class="preview-button secondary" type="button" data-action="tap">Tap tempo</button>
         <button class="preview-button secondary" type="button" data-action="variation">Variation更新</button>
         <button class="preview-button secondary" type="button" data-action="live-toggle">${modeLabel}</button>`
     : `
-        <button class="preview-button" type="button" data-action="start">${state.playback.isPlaying ? "再スタート" : "再生"}</button>
+        <button class="preview-button primary-play" type="button" data-action="start">${state.playback.isPlaying ? "再スタート" : "再生"}</button>
         <button class="preview-button secondary" type="button" data-action="stop">停止</button>
         <button class="preview-button secondary" type="button" data-action="live-toggle">${modeLabel}</button>`;
   return `<div class="grid${showAdvanced ? " live-grid" : " simple-live-grid"}">
@@ -482,12 +482,12 @@ function renderPolicyView(profile) {
 function renderManualView() {
   return `<div class="grid">
     ${card("Music Stackでの3役", `<div class="section-grid">
-      <article class="section-box"><strong>単独preview</strong><p>このページで合成ドラムを聴く入口。Music SYNC後は <strong>AI Live / 再生</strong> の再生を押すだけ。</p></article>
+      <article class="section-box"><strong>単独preview</strong><p>このページで合成ドラムを聴く入口。Music SYNC後は <strong>再生</strong> を押すだけ。</p></article>
       <article class="section-box"><strong>chill DRUMS</strong><p><strong>chill/session.html</strong> のピアノ/ベース/trioに従う入口。流れはchillが持ちます。</p></article>
       <article class="section-box"><strong>OpenClaw raw candidate</strong><p>Surface CLIでMIDI候補を生成/inspectする入口。arm、録音、アップロードは人間が決めます。</p></article>
     </div>`, true)}
     ${card("使い方マニュアル", `<ol class="manual-list">
-      <li>Musicで良い瞬間に <strong>SYNC</strong> を押す。</li><li>このページを開くとkit/pocketが自動で寄る。</li><li><strong>AI Live / 再生</strong>で再生する。</li><li>細かく触る時だけstyle profileやpattern frameを選ぶ。</li><li>止める時は<strong>停止</strong>、危ない時は<strong>緊急停止</strong>。</li></ol>`, true)}
+      <li>Musicで良い瞬間に <strong>SYNC</strong> を押す。</li><li>このページを開くとkit/pocketが自動で寄る。</li><li><strong>再生</strong>でpreviewを鳴らす。</li><li>細かく触る時だけstyle profileやpattern frameを選ぶ。</li><li>止める時は<strong>停止</strong>、危ない時は<strong>緊急停止</strong>。</li></ol>`, true)}
     ${card("できること", chipList(["rule-based AI共演", "間/溜め/発火/回収", "local audio feature follow", "Web MIDI optional output", "live mode", "listening harness"]))}
     ${card("まだやらないこと", chipList(["録音", "音声アップロード", "外部AI API", "サンプル再生", "MIDI file export", "VCV自動操作"], "token"))}
   </div>`;

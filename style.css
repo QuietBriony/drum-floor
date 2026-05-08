@@ -612,7 +612,16 @@ code {
   cursor: pointer;
   font-family: "Trebuchet MS", "Yu Gothic", sans-serif;
   font-weight: 700;
+  min-height: 44px;
   padding: 10px 14px;
+}
+
+.preview-button.primary-play {
+  background: var(--brick);
+  border-color: var(--brick);
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  min-width: 154px;
 }
 
 .preview-button.secondary {
@@ -778,7 +787,12 @@ code {
 }
 
 .live-controls .preview-button {
-  min-width: 96px;
+  min-width: 100px;
+}
+
+.live-controls .preview-button.primary-play {
+  flex: 1 1 190px;
+  min-height: 54px;
 }
 
 .quick-steps,

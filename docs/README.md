@@ -1,66 +1,50 @@
-# drum-floor: Band Groove Generator
+# drum-floor docs
 
-`drum-floor` は Music リポジトリの下位モジュールではなく、**Band Groove Generator（人間演奏向けのグルーヴ生成エンジン）**として定義する。
+`drum-floor` is the Music Stack's band groove generator and live rhythm
+safety reference. It is not a submodule of `Music`, and it should not be
+flattened into Music's generative rig. Its strongest edge is playable pocket,
+stage-safe preview, and human-gated movement from idea to live candidate.
 
-## 変更方針
+## Current role
 
-- 本体の音源パッチ実装は当面触らず、ドキュメント上で方向性を確定する。
-- 既存の `patches/` / `docs/` 運用は維持しつつ、`drum-floor` の役割を再定義する。
-- 最終成果物は「スタジオ/バンドセッションで使えるドラムグルーヴを安定供給する」こと。
+- `drum-floor standalone`: browser Pages UI for synthetic drum preview and
+  manual listening.
+- `chill DRUMS`: soft pocket adapter for `chill/session.html`; `chill` owns
+  piano, bass, flow, START, and PANIC.
+- `OpenClaw raw candidate`: local CLI path for generating and inspecting MIDI
+  candidates before a human arms anything.
 
-## Music との関係
+Music `SYNC` is metadata-only. It may shape kit, pocket, energy, space, BPM, or
+mic-follow hints, but it must not start playback, record audio, send MIDI, arm
+Ableton, touch EP-133, operate VCV, upload audio, or bypass human review.
 
-- `Music` は IDM / `field-murk` 系の実験的プロジェクトとして扱う。
-- `drum-floor` は実験ではなく、**人が演奏するバンドで使いやすいグルーヴを優先**する。
-- 共有するのは以下のみとする。
-  - `docs/schema/` の「production translation」思想
-  - ドキュメント設計で必要な運用・命名規約の抽象化
-- 連携時に音源実装を同時に取り込む前提にはしない。
+## Current docs map
 
-## drum feel の生成入力
+- [Root README](../README.md): operational overview, safety posture, Music
+  SYNC roles, browser session adapter, and CLI examples.
+- [OpenClaw live contract](./openclaw-live-contract.md): writable directories,
+  forbidden writes, candidate outputs, browser trio surface, and human-armed
+  workflow.
+- [Drum pattern frame contract](./drum-pattern-frame-contract.md): Pocket
+  Director frame contract and no-samples boundary.
+- [Groove profile schema](./groove-profile-schema.md): band groove profile
+  vocabulary and profile validation expectations.
+- [Input/output example](./input-output-example.md): profile-to-drum-output
+  example.
+- [Ableton preview checklist](./ableton-preview-checklist.md): listening check
+  before any EP-133 or live-rig routing.
+- [EP-133 MIDI map](./ep133-midi-map.md): optional performance routing notes
+  after Ableton preview and human review.
+- [Evolution scorecard](./evolution-scorecard.md): metadata-only listening
+  score axes.
+- [Pocket Director evolution loop](./evolution-pocket-director-loop.md):
+  score-to-suggestion loop and human-gated evolution.
+- [Human promotion workflow](./evolution-promotion-workflow.md): final gate
+  before pattern-frame changes.
 
-- 音声解析は導入しない（v1時点）。
-- 手入力のプロフィールを起点として feel を生成する。
-- 入力プロフィールの最小セット:
-  - `vocal profile`
-  - `bass profile`
-  - `guitar profile`
-  - `section profile`
-  - `style profile`
-- これらからビート密度・アクセント・ノリの強弱・空白量・フィル発生条件を決定し、ドラムの表情へ反映する。
+## Groove and runtime docs
 
-## 対象 style profile
-
-- `mixture_shout`
-- `rock_heavy`
-- `nerdy_jazzy_hiphop`
-- `breakbeat_live`
-- `dubby_half_time`
-
-## 生成対象（初期定義）
-
-以下を主要生成ターゲットとして扱う。
-
-- `kick`
-- `snare`
-- `hat`
-- `ghost notes`
-- `fill`
-- `crash`
-- `section transition`
-
-## 将来ロードマップ（実装ではなく検討事項）
-
-- 音声解析（vocal / bass / guitar の自動抽出）への拡張
-- DAW 連携（セクション情報やグリッド解釈の共有）
-- 生成結果を外部環境へ安全に渡すプロファイル出力仕様
-- 既存 `docs/schema` と連携しやすい中間表現への標準化
-
-## Docs index
-
-- [Groove profile schema](./groove-profile-schema.md)
-- [Input/output example](./input-output-example.md)
-- [Band Groove Generator v1 研究計画](./groove/band-groove-research-plan-v1.md)
+- [Band Groove Generator v1 research plan](./groove/band-groove-research-plan-v1.md)
 - [Groove decision model](./groove/groove-decision-model.md)
 - [Groove grammar v1](./groove/groove-grammar-v1.md)
 - [Fill and transition policy](./groove/fill-and-transition-policy.md)
@@ -68,5 +52,29 @@
 - [Future runtime contract](./groove/future-runtime-contract.md)
 - [Browser groove engine roadmap](./runtime/browser-groove-engine.md)
 - [Audio input groove prediction](./runtime/audio-input-groove-prediction.md)
-- [VCV and live bridge roadmap](./runtime/vcv-and-live-bridge.md)
+- [VCV and Live bridge roadmap](./runtime/vcv-and-live-bridge.md)
 - [Live AI audio interface roadmap](./runtime/live-ai-audio-interface-roadmap.md)
+
+## Boundaries to keep sharp
+
+- Keep the repo centered on rhythm operation: pocket, space, fill policy,
+  human feel, deterministic preview, and stage recovery.
+- Keep browser preview synthetic and local unless a later reviewed contract
+  changes the source policy.
+- Keep JSON/profile/pattern-frame data as source of truth; MIDI is a compiled
+  artifact for preview or optional routing.
+- Keep `live/armed/`, Ableton projects, EP-133 state, VCV operation, audio
+  recordings, samples, dependencies, and workflow automation behind explicit
+  human review.
+- Do not turn every Music Stack integration into a drum-floor runtime feature.
+  `Music` conducts metadata, `chill` owns the quiet trio surface, and
+  `drum-floor` owns groove grammar and safe rhythm audition.
+
+## Non-goals for docs-only passes
+
+- No runtime implementation.
+- No audio files or samples.
+- No dependency changes.
+- No schema churn unless separately reviewed.
+- No automatic device, DAW, VCV, or live-slot operation.
+- No Music Stack unification that erases drum-floor's band-groove role.

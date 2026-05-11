@@ -4,7 +4,7 @@ export class AudioEngine {
   constructor(options = {}) {
     this.audioContext = options.audioContext || null;
     this.destination = options.destination || null;
-    this.masterLevel = Number.isFinite(options.gain) ? options.gain : 0.38;
+    this.masterLevel = Number.isFinite(options.gain) ? options.gain : 0.5;
     this.softGlue = Math.min(1, Math.max(0, Number(options.softGlue) || 0));
     this.master = null;
     this.masterHighpass = null;
@@ -38,7 +38,7 @@ export class AudioEngine {
     this.masterShelf = this.audioContext.createBiquadFilter();
     this.masterShelf.type = "highshelf";
     this.masterShelf.frequency.value = 6200;
-    this.masterShelf.gain.value = -1.8 - this.softGlue * 2.2;
+    this.masterShelf.gain.value = -1.1 - this.softGlue * 1.8;
     this.roomDelay = this.audioContext.createDelay(0.08);
     this.roomFilter = this.audioContext.createBiquadFilter();
     this.roomGain = this.audioContext.createGain();
@@ -48,11 +48,11 @@ export class AudioEngine {
     this.roomFilter.type = "bandpass";
     this.roomFilter.frequency.value = 980;
     this.roomFilter.Q.value = 0.64;
-    this.roomGain.gain.value = 0.18 + this.softGlue * 0.035;
+    this.roomGain.gain.value = 0.21 + this.softGlue * 0.035;
     this.bodyFilter.type = "bandpass";
     this.bodyFilter.frequency.value = 190;
     this.bodyFilter.Q.value = 0.82;
-    this.bodyGain.gain.value = 0.065;
+    this.bodyGain.gain.value = 0.085;
     this.roomDelay.connect(this.roomFilter).connect(this.roomGain).connect(this.compressor);
     this.bodyFilter.connect(this.bodyGain).connect(this.compressor);
     this.master

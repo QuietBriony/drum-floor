@@ -34,6 +34,77 @@ function normalizedSection(section) {
   return SECTION_MAP[String(section || "").toLowerCase()] || "verse";
 }
 
+function destinationFromTargetRepo(targetRepo) {
+  const map = {
+    Music: "music",
+    "drum-floor": "drum_floor",
+    namima: "namima",
+    chill: "chill",
+    OpenClaw: "openclaw"
+  };
+  return map[targetRepo] || "openclaw";
+}
+
+function normalizeMusicPacket(packet) {
+  if (!packet || packet.version !== "music-orchestra-packet.v1") return packet;
+  const musicState = asObject(packet.music_state);
+  const performance = asObject(musicState.performance_summary);
+  const routing = asObject(packet.routing);
+  const drum = asObject(routing.drum_floor);
+  const openclaw = asObject(routing.openclaw);
+  const promotion = asObject(packet.promotion);
+  return {
+    version: 1,
+    source_repo: "Music",
+    created_at: packet.created_at,
+    session_id: packet.session_id,
+    mode: musicState.mode || "orchestra",
+    reference_gradient: {
+      weights: asObject(packet.reference_gradient)
+    },
+    ucm_state: asObject(musicState.ucm_state),
+    performance_state: {
+      active_pad: performance.active_pad || null,
+      recent_pads: Array.isArray(performance.recent_pads) ? performance.recent_pads : [],
+      automix_enabled: !!performance.automix_enabled,
+      mic_follow: asObject(packet.mic_follow),
+      radio_brain: { program: performance.radio_program || null, metadata_only: true },
+      hazama_fm: performance.hazama_fm_genre ? { genre: performance.hazama_fm_genre, integration_mode: "metadata-only" } : null
+    },
+    routing: {
+      drum_floor: {
+        enabled: drum.enabled !== false,
+        groove_intent: {
+          style: String(drum.intent || "").toLowerCase().includes("dry") ? "dry_grid" : "soft_pocket",
+          review_only: true
+        },
+        review_reason: drum.intent || drum.next_action || "Music orchestra packetから作る手動preview候補。",
+        review_only: true
+      },
+      openclaw: {
+        enabled: true,
+        promotion_status: promotion.status || "draft",
+        human_review_required: true,
+        next_action: {
+          destination: destinationFromTargetRepo(promotion.target_repo),
+          label: promotion.target_repo || "OpenClaw",
+          reason: promotion.reviewer_note || openclaw.intent || "",
+          action: openclaw.next_action || promotion.rollback || "",
+          metadata_only: true
+        },
+        review_only: true
+      }
+    },
+    safety: {
+      stores_audio: false,
+      stores_samples: false,
+      stores_lyrics: false,
+      metadata_only: true,
+      human_review_required: true
+    }
+  };
+}
+
 function musicPacketMode(packet) {
   return String(packet?.mode || "").toLowerCase();
 }
@@ -125,6 +196,7 @@ function estimateBpm(packet, density, pressure, mic = {}) {
 }
 
 export function translateMusicSessionPacket(packet, options = {}) {
+  packet = normalizeMusicPacket(packet);
   const routing = asObject(packet?.routing);
   const drum = asObject(routing.drum_floor);
   const openclaw = asObject(routing.openclaw);

@@ -170,6 +170,8 @@ OpenClaw treats this as a trio drum surface:
 `translateMusicSessionPacket(packet)` and `window.DrumFloorMusicSessionAdapter`
 for OpenClaw review flows. It reads only `routing.drum_floor`,
 `reference_gradient`, `ucm_state`, and performance metadata from Music packets.
+When Band Room sends a current-groove handoff, `routing.drum_floor.source_song.bpm`
+is treated as the preview BPM hint before falling back to inferred tempo.
 
 The adapter can be loaded by `chill` for manual browser playback, but OpenClaw v1
 does not auto-click `START`, auto-arm drums, write recordings, or take over Tone
@@ -196,6 +198,9 @@ anything.
 - If Music `SYNC` includes `performance_state.mic_follow`, drum-floor reads only
   metadata such as `gesture`, `drive`, `pulse`, `air`, and `bpm_lock` to shape
   the preview. It never records microphone audio or starts playback by itself.
+- If Band Room opens drum-floor, the current song BPM/section/frame arrives as
+  metadata; drum-floor uses the BPM hint for preview controls and still waits
+  for a human to press `再生`.
 - `chill DRUMS`: open `chill/session.html`. chill owns piano, bass, flow, and
   the START/PANIC buttons; drum-floor only supplies the soft pocket adapter.
 - `OpenClaw raw candidate`: use the Surface CLI path to generate and inspect

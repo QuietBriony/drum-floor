@@ -195,6 +195,22 @@ function estimateBpm(packet, density, pressure, mic = {}) {
   return Math.round(clamp(base, 54, 190));
 }
 
+function packetBpmHint(packet, drum) {
+  const sourceSong = asObject(drum.source_song);
+  const candidates = [
+    drum.bpm,
+    sourceSong.bpm,
+    sourceSong.tempo,
+    asObject(packet?.performance_state).bpm,
+    packet?.bpm
+  ];
+  for (const candidate of candidates) {
+    const value = Number(candidate);
+    if (Number.isFinite(value) && value > 0) return Math.round(clamp(value, 54, 190));
+  }
+  return 0;
+}
+
 export function translateMusicSessionPacket(packet, options = {}) {
   packet = normalizeMusicPacket(packet);
   const routing = asObject(packet?.routing);
@@ -204,6 +220,7 @@ export function translateMusicSessionPacket(packet, options = {}) {
   const ucm = asObject(packet?.ucm_state);
   const gradient = asObject(packet?.reference_gradient?.weights);
   const mic = micFollowSummary(packet);
+  const bpmHint = packetBpmHint(packet, drum);
   const rhythmBias = micRhythmBias(mic);
   const airBias = micAirBias(mic);
   const density = unit(drum.density, percent(ucm.energy, 30) / 100);
@@ -222,7 +239,7 @@ export function translateMusicSessionPacket(packet, options = {}) {
   const resource = percent(ucm.resource, 0) / 100;
 
   const controls = {
-    bpm: clamp(Number(options.bpm) || estimateBpm(packet, shapedDensity, shapedPressure, mic), 54, 190),
+    bpm: clamp(Number(options.bpm) || bpmHint || estimateBpm(packet, shapedDensity, shapedPressure, mic), 54, 190),
     section,
     energy: Math.round(clamp(energy, 0, 100)),
     density: Math.round(clamp(shapedDensity * 72 + resource * 18 + shapedPressure * 10, 8, 92)),

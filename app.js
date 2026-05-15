@@ -5,7 +5,7 @@ import { defaultBandInputFrame, defaultControls, sanitizeControls } from "./src/
 import { generateGrooveBar } from "./src/groove-engine.js";
 import { createControlState, randomizeVariation, tapTempo, updateControl } from "./src/manual-controls.js";
 import { MidiOutput } from "./src/midi-output.js";
-import { translateMusicSessionPacket } from "./src/music-session-adapter.js";
+import { translateMusicSessionPacket } from "./src/music-session-adapter.js?v=band-room-bpm-1";
 import { renderAll, renderLoadError } from "./src/ui-render.js?v=organic-flow-v1";
 
 const MUSIC_STACK_PACKET_STORAGE_KEY = "qb:music-stack:latest-packet:v1";

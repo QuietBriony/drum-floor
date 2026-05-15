@@ -613,15 +613,20 @@ function receiveMusicStackPacket(payload, source = "sync") {
   }
 }
 
+function receiveMusicStackPacketIfQueryMatches(payload, source = "sync") {
+  const packet = musicPacketFromStackPayload(payload);
+  if (!packet) return false;
+  if (!packetMatchesIncomingQuery(packet)) return false;
+  return receiveMusicStackPacket(payload, source);
+}
+
 function readLatestMusicStackPacket() {
   try {
     const raw = window.localStorage?.getItem(MUSIC_STACK_PACKET_STORAGE_KEY)
       || window.localStorage?.getItem(MUSIC_ORCHESTRA_PACKET_STORAGE_KEY);
     if (!raw) return false;
     const payload = JSON.parse(raw);
-    const packet = musicPacketFromStackPayload(payload);
-    if (!packetMatchesIncomingQuery(packet)) return false;
-    return receiveMusicStackPacket(payload, "latest");
+    return receiveMusicStackPacketIfQueryMatches(payload, "latest");
   } catch (error) {
     updatePacketStatus(`latest SYNCを読めません: ${error.message}`, "error");
     return false;
@@ -639,9 +644,9 @@ function setupMusicStackSyncReceiver() {
   try {
     if (typeof window.BroadcastChannel === "function") {
       const channel = new window.BroadcastChannel(MUSIC_STACK_CHANNEL_NAME);
-      channel.addEventListener("message", (event) => receiveMusicStackPacket(event.data, "broadcast"));
+      channel.addEventListener("message", (event) => receiveMusicStackPacketIfQueryMatches(event.data, "broadcast"));
       const orchestraChannel = new window.BroadcastChannel(MUSIC_ORCHESTRA_CHANNEL_NAME);
-      orchestraChannel.addEventListener("message", (event) => receiveMusicStackPacket(event.data, "orchestra-broadcast"));
+      orchestraChannel.addEventListener("message", (event) => receiveMusicStackPacketIfQueryMatches(event.data, "orchestra-broadcast"));
     }
   } catch (error) {
     console.warn("[drum-floor] Music stack BroadcastChannel unavailable:", error);
@@ -649,7 +654,7 @@ function setupMusicStackSyncReceiver() {
   window.addEventListener("storage", (event) => {
     if (![MUSIC_STACK_PACKET_STORAGE_KEY, MUSIC_ORCHESTRA_PACKET_STORAGE_KEY].includes(event.key) || !event.newValue) return;
     try {
-      receiveMusicStackPacket(JSON.parse(event.newValue), "storage");
+      receiveMusicStackPacketIfQueryMatches(JSON.parse(event.newValue), "storage");
     } catch (error) {
       updatePacketStatus(`storage SYNCを読めません: ${error.message}`, "error");
     }

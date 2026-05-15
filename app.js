@@ -13,6 +13,14 @@ const MUSIC_STACK_CHANNEL_NAME = "qb:music-stack:v1";
 const MUSIC_ORCHESTRA_PACKET_STORAGE_KEY = "qb:music-stack:latest-orchestra-packet:v1";
 const MUSIC_ORCHESTRA_CHANNEL_NAME = "qb:music-stack:orchestra:v1";
 const MUSIC_APP_BASE_URL = "https://quietbriony.github.io/Music/";
+const FM_GENRE_HINTS = Object.freeze({
+  ambient: { style: "soft_pocket", section: "bridge", energy: 30, body: 24, resource: 42, void: 64, ghost: 0.28, micro: 0.18, organic: 0.44, haze: 0.72 },
+  techno: { style: "dry_grid", section: "chorus", energy: 78, body: 82, resource: 70, void: 8, ghost: 0.36, micro: 0.58, organic: 0.22, haze: 0.18 },
+  lofi: { style: "broken_organic", section: "verse", energy: 42, body: 44, resource: 56, void: 28, ghost: 0.54, micro: 0.48, organic: 0.66, haze: 0.58 },
+  jazz: { style: "soft_pocket", section: "verse", energy: 42, body: 52, resource: 62, void: 18, ghost: 0.62, micro: 0.32, organic: 0.74, haze: 0.34 },
+  funk: { style: "ghost_pressure", section: "chorus", energy: 66, body: 76, resource: 68, void: 14, ghost: 0.68, micro: 0.44, organic: 0.58, haze: 0.22 },
+  piano: { style: "soft_pocket", section: "verse", energy: 30, body: 30, resource: 54, void: 34, ghost: 0.24, micro: 0.18, organic: 0.52, haze: 0.48 }
+});
 
 const refs = {
   profileList: document.querySelector("#profile-list"),
@@ -271,6 +279,16 @@ function sourceSongFromPacket(packet) {
   return packet?.routing?.drum_floor?.source_song || {};
 }
 
+function hazamaFmContextFromPacket(packet) {
+  const drumHazama = packet?.routing?.drum_floor?.hazama_fm || {};
+  const perfHazama = packet?.performance_state?.hazama_fm || {};
+  return {
+    genre: drumHazama.genre || perfHazama.genre || perfHazama.listening_trace?.current_genre || "",
+    energy: drumHazama.energy || perfHazama.listening_trace?.current_energy || "",
+    bpm: Number(drumHazama.bpm || perfHazama.listening_trace?.bpm || packet?.routing?.drum_floor?.bpm || 0) || null
+  };
+}
+
 function bandRoomQueryHint() {
   if (typeof window === "undefined") return null;
   const params = new URLSearchParams(window.location.search);
@@ -285,12 +303,65 @@ function bandRoomQueryHint() {
   return hint.song_id || hint.bpm || hint.source_section || hint.frame_id ? hint : null;
 }
 
+function fmQueryHint() {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("from") !== "fm") return null;
+  const genre = String(params.get("g") || params.get("genre") || "").toLowerCase();
+  const energy = String(params.get("energy") || "mid").toLowerCase();
+  const hint = {
+    genre: FM_GENRE_HINTS[genre] ? genre : "",
+    energy: ["low", "mid", "high"].includes(energy) ? energy : "mid",
+    bpm: Number(params.get("bpm") || 0) || null
+  };
+  return hint.genre || hint.bpm ? hint : null;
+}
+
+function packetBpmValue(packet) {
+  const drum = packet?.routing?.drum_floor || {};
+  const sourceSong = sourceSongFromPacket(packet);
+  const hazama = hazamaFmContextFromPacket(packet);
+  const candidates = [
+    drum.bpm,
+    sourceSong.bpm,
+    sourceSong.tempo,
+    hazama.bpm,
+    packet?.performance_state?.bpm,
+    packet?.bpm
+  ];
+  for (const candidate of candidates) {
+    const value = Number(candidate);
+    if (Number.isFinite(value) && value > 0) return Math.round(value);
+  }
+  return 0;
+}
+
 function packetMatchesBandRoomQuery(packet, hint = bandRoomQueryHint()) {
   if (!hint) return true;
   const sourceSong = sourceSongFromPacket(packet);
+  const drum = packet?.routing?.drum_floor || {};
   if (hint.song_id && sourceSong.song_id !== hint.song_id) return false;
   if (hint.frame_id && sourceSong.frame_id && sourceSong.frame_id !== hint.frame_id) return false;
+  const sourceSection = sourceSong.source_section || drum.section || "";
+  if (hint.source_section && sourceSection && sourceSection !== hint.source_section) return false;
+  const packetBpm = packetBpmValue(packet);
+  if (hint.bpm && packetBpm && Math.abs(packetBpm - hint.bpm) > 2) return false;
   return true;
+}
+
+function packetMatchesFmQuery(packet, hint = fmQueryHint()) {
+  if (!hint) return true;
+  const hazama = hazamaFmContextFromPacket(packet);
+  const mode = String(packet?.mode || "").toLowerCase();
+  const packetGenre = hazama.genre || (FM_GENRE_HINTS[mode] ? mode : "");
+  if (hint.genre && packetGenre !== hint.genre) return false;
+  const packetBpm = packetBpmValue(packet);
+  if (hint.bpm && packetBpm && Math.abs(packetBpm - hint.bpm) > 4) return false;
+  return true;
+}
+
+function packetMatchesIncomingQuery(packet) {
+  return packetMatchesBandRoomQuery(packet) && packetMatchesFmQuery(packet);
 }
 
 function packetFromBandRoomQuery(hint = bandRoomQueryHint()) {
@@ -324,6 +395,80 @@ function packetFromBandRoomQuery(hint = bandRoomQueryHint()) {
   };
 }
 
+function packetFromFmQuery(hint = fmQueryHint()) {
+  if (!hint) return null;
+  const genre = hint.genre || "lofi";
+  const info = FM_GENRE_HINTS[genre] || FM_GENRE_HINTS.lofi;
+  const energyBoost = hint.energy === "high" ? 8 : hint.energy === "low" ? -8 : 0;
+  const bpm = hint.bpm || null;
+  return {
+    source_repo: "Music",
+    mode: genre,
+    session_id: `hazama-fm-query-${genre}`,
+    created_at: new Date().toISOString(),
+    reference_gradient: {
+      weights: {
+        ghost: info.ghost,
+        micro: info.micro,
+        organic: info.organic,
+        haze: info.haze
+      }
+    },
+    ucm_state: {
+      energy: Math.max(0, Math.min(100, info.energy + energyBoost)),
+      body: info.body,
+      resource: info.resource,
+      void: info.void
+    },
+    performance_state: {
+      active_pad: info.section,
+      recent_pads: [info.section, "hazama-fm", genre],
+      hazama_fm: {
+        active: false,
+        genre,
+        listening_trace: {
+          current_genre: genre,
+          current_energy: hint.energy,
+          bpm,
+          dwell_ms_by_genre: { [genre]: 0 },
+          switch_count: 0
+        },
+        integration_mode: "metadata-only",
+        review_only: true
+      }
+    },
+    routing: {
+      drum_floor: {
+        enabled: true,
+        section: info.section,
+        bpm,
+        hazama_fm: {
+          genre,
+          energy: hint.energy,
+          bpm,
+          metadata_only: true
+        },
+        groove_intent: {
+          style: info.style,
+          ghost_notes: info.ghost,
+          micro: info.micro,
+          articulation: genre === "techno" ? "dry_repeat" : genre === "funk" ? "body_snap" : "human_pocket",
+          review_only: true
+        },
+        review_reason: "Hazama FM URL handoff fallback. Use this only when shared SYNC is unavailable or stale.",
+        review_only: true
+      }
+    },
+    safety: { metadata_only: true, human_review_required: true }
+  };
+}
+
+function readIncomingQueryPacket() {
+  const packet = packetFromBandRoomQuery() || packetFromFmQuery();
+  if (!packet) return false;
+  return receiveMusicStackPacket(packet, packet.mode === "band_room" ? "band-room-query" : "fm-query");
+}
+
 function fmGenreForTranslation(packet, translation) {
   const mode = String(packet?.mode || "").toLowerCase();
   if (["ambient", "techno", "lofi", "jazz", "funk", "piano"].includes(mode)) return mode;
@@ -340,26 +485,37 @@ function fmGenreForTranslation(packet, translation) {
 
 function refreshMusicReturnLinks(packet = null, translation = null) {
   const sourceSong = sourceSongFromPacket(packet);
+  const hazama = hazamaFmContextFromPacket(packet);
   const section = sourceSong.source_section || packet?.routing?.drum_floor?.section || "";
   const songTitle = sourceSong.song_title || sourceSong.song_id || "";
   const context = songTitle
     ? `${songTitle}${section ? ` / ${section}` : ""}`
+    : hazama.genre
+      ? `Hazama FM / ${hazama.genre}${hazama.bpm ? ` / ${hazama.bpm}bpm` : ""}`
     : "Music Stack";
   if (refs.musicReturnContext) refs.musicReturnContext.textContent = context;
   if (refs.returnBandRoom) {
-    refs.returnBandRoom.href = musicUrl("band-room.html", {
-      from: "drum-floor",
-      band: sourceSong.band_id,
-      song: sourceSong.song_id,
-      section,
-      frame: sourceSong.frame_id,
-      bpm: sourceSong.bpm
-    });
+    const fromFm = hazama.genre && !sourceSong.song_id;
+    refs.returnBandRoom.href = musicUrl("band-room.html", fromFm
+      ? {
+          from: "fm",
+          g: hazama.genre
+        }
+      : {
+          from: "drum-floor",
+          band: sourceSong.band_id,
+          song: sourceSong.song_id,
+          section,
+          frame: sourceSong.frame_id,
+          bpm: sourceSong.bpm
+        });
   }
   if (refs.returnHazamaFm) {
     refs.returnHazamaFm.href = musicUrl("fm.html", {
       from: "drum-floor",
-      g: fmGenreForTranslation(packet, translation)
+      g: fmGenreForTranslation(packet, translation) || hazama.genre,
+      energy: hazama.energy,
+      bpm: hazama.bpm
     });
   }
 }
@@ -464,7 +620,7 @@ function readLatestMusicStackPacket() {
     if (!raw) return false;
     const payload = JSON.parse(raw);
     const packet = musicPacketFromStackPayload(payload);
-    if (!packetMatchesBandRoomQuery(packet)) return false;
+    if (!packetMatchesIncomingQuery(packet)) return false;
     return receiveMusicStackPacket(payload, "latest");
   } catch (error) {
     updatePacketStatus(`latest SYNCを読めません: ${error.message}`, "error");
@@ -522,7 +678,7 @@ async function loadProfiles() {
     state.currentFrame = syncFrameControl(activeProfile());
     render();
     if (state.musicPacket.pendingSync) applyMusicPacketPreview({ message: "SYNC受信分をpreview controlsへ反映しました。再生は人間が押すまで鳴りません。" });
-    else if (!readLatestMusicStackPacket()) readBandRoomQueryPacket();
+    else if (!readLatestMusicStackPacket()) readIncomingQueryPacket();
   } catch (error) {
     state.loadStatus = "読み込み失敗";
     renderLoadError(refs, state, error);

@@ -12,6 +12,7 @@ const MUSIC_STACK_PACKET_STORAGE_KEY = "qb:music-stack:latest-packet:v1";
 const MUSIC_STACK_CHANNEL_NAME = "qb:music-stack:v1";
 const MUSIC_ORCHESTRA_PACKET_STORAGE_KEY = "qb:music-stack:latest-orchestra-packet:v1";
 const MUSIC_ORCHESTRA_CHANNEL_NAME = "qb:music-stack:orchestra:v1";
+const MUSIC_APP_BASE_URL = "https://quietbriony.github.io/Music/";
 
 const refs = {
   profileList: document.querySelector("#profile-list"),
@@ -22,6 +23,9 @@ const refs = {
   musicPacketInput: document.querySelector("#music-packet-input"),
   musicPacketStatus: document.querySelector("#music-packet-status"),
   musicPacketOutput: document.querySelector("#music-packet-output"),
+  musicReturnContext: document.querySelector("#music-return-context"),
+  returnBandRoom: document.querySelector("#return-band-room"),
+  returnHazamaFm: document.querySelector("#return-hazama-fm"),
   tabs: [...document.querySelectorAll(".tab-button")],
   views: {
     profile: document.querySelector("#view-profile"),
@@ -254,6 +258,112 @@ function musicPacketMicHint(translation) {
   return ` MIC ${label}${drive ? ` ${drive}%` : ""}を反映。`;
 }
 
+function musicUrl(path, params = {}) {
+  const url = new URL(path, MUSIC_APP_BASE_URL);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value == null || value === "") return;
+    url.searchParams.set(key, String(value));
+  });
+  return url.toString();
+}
+
+function sourceSongFromPacket(packet) {
+  return packet?.routing?.drum_floor?.source_song || {};
+}
+
+function bandRoomQueryHint() {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("from") !== "band-room") return null;
+  const hint = {
+    band_id: params.get("band") || "",
+    song_id: params.get("song") || "",
+    bpm: Number(params.get("bpm") || 0) || null,
+    source_section: params.get("section") || "",
+    frame_id: params.get("frame") || ""
+  };
+  return hint.song_id || hint.bpm || hint.source_section || hint.frame_id ? hint : null;
+}
+
+function packetMatchesBandRoomQuery(packet, hint = bandRoomQueryHint()) {
+  if (!hint) return true;
+  const sourceSong = sourceSongFromPacket(packet);
+  if (hint.song_id && sourceSong.song_id !== hint.song_id) return false;
+  if (hint.frame_id && sourceSong.frame_id && sourceSong.frame_id !== hint.frame_id) return false;
+  return true;
+}
+
+function packetFromBandRoomQuery(hint = bandRoomQueryHint()) {
+  if (!hint) return null;
+  const section = hint.source_section || "preview";
+  return {
+    source_repo: "Music",
+    mode: "band_room",
+    session_id: `band-room-query-${hint.song_id || "current"}`,
+    created_at: new Date().toISOString(),
+    reference_gradient: { weights: { organic: 0.72, pulse: 0.5, ghost: 0.42, micro: 0.35 } },
+    ucm_state: { energy: 58, body: 62, resource: 56, void: section === "bridge" ? 32 : 12 },
+    performance_state: { active_pad: section, recent_pads: [section, "band-room"] },
+    routing: {
+      drum_floor: {
+        enabled: true,
+        section,
+        source_song: {
+          band_id: hint.band_id || "tabasco",
+          song_id: hint.song_id || "",
+          song_title: hint.song_id || "Band Room song",
+          bpm: hint.bpm || null,
+          source_section: section,
+          frame_id: hint.frame_id || ""
+        },
+        review_reason: "Band Room URL handoff fallback. Use this only when localStorage SYNC is unavailable or stale.",
+        review_only: true
+      }
+    },
+    safety: { metadata_only: true, human_review_required: true }
+  };
+}
+
+function fmGenreForTranslation(packet, translation) {
+  const mode = String(packet?.mode || "").toLowerCase();
+  if (["ambient", "techno", "lofi", "jazz", "funk", "piano"].includes(mode)) return mode;
+  const profile = String(translation?.profileId || "");
+  const frame = String(translation?.frameId || "");
+  const haystack = `${profile} ${frame}`.toLowerCase();
+  if (haystack.includes("jazz")) return "jazz";
+  if (haystack.includes("funk") || haystack.includes("shout")) return "funk";
+  if (haystack.includes("breakbeat") || haystack.includes("hiphop")) return "lofi";
+  if (haystack.includes("dub") || haystack.includes("space")) return "ambient";
+  if (haystack.includes("rock") || haystack.includes("drive")) return "techno";
+  return "";
+}
+
+function refreshMusicReturnLinks(packet = null, translation = null) {
+  const sourceSong = sourceSongFromPacket(packet);
+  const section = sourceSong.source_section || packet?.routing?.drum_floor?.section || "";
+  const songTitle = sourceSong.song_title || sourceSong.song_id || "";
+  const context = songTitle
+    ? `${songTitle}${section ? ` / ${section}` : ""}`
+    : "Music Stack";
+  if (refs.musicReturnContext) refs.musicReturnContext.textContent = context;
+  if (refs.returnBandRoom) {
+    refs.returnBandRoom.href = musicUrl("band-room.html", {
+      from: "drum-floor",
+      band: sourceSong.band_id,
+      song: sourceSong.song_id,
+      section,
+      frame: sourceSong.frame_id,
+      bpm: sourceSong.bpm
+    });
+  }
+  if (refs.returnHazamaFm) {
+    refs.returnHazamaFm.href = musicUrl("fm.html", {
+      from: "drum-floor",
+      g: fmGenreForTranslation(packet, translation)
+    });
+  }
+}
+
 function readMusicPacket() {
   const raw = refs.musicPacketInput?.value.trim() || "";
   if (!raw) {
@@ -265,6 +375,7 @@ function readMusicPacket() {
     const translation = translateMusicSessionPacket(packet);
     state.musicPacket = { packet, translation };
     renderPacketTranslation(translation);
+    refreshMusicReturnLinks(packet, translation);
     const route = translation.stack_route;
     const routeHint = route?.label
       ? ` Music推奨: ${route.label}${route.recommended_here ? "。" : "。drum-floorは候補として反映。"}`
@@ -310,6 +421,7 @@ function clearMusicPacket() {
   if (refs.musicPacketInput) refs.musicPacketInput.value = "";
   if (refs.musicPacketOutput) refs.musicPacketOutput.textContent = "まだ読んでいません。";
   state.musicPacket = { packet: null, translation: null };
+  refreshMusicReturnLinks();
   updatePacketStatus("MusicでSYNCすると自動受信します。貼り付け欄はfallbackです。");
 }
 
@@ -330,6 +442,7 @@ function receiveMusicStackPacket(payload, source = "sync") {
     state.musicPacket = { packet, translation, pendingSync: state.profiles.length ? null : packet };
     if (refs.musicPacketInput) refs.musicPacketInput.value = JSON.stringify(packet, null, 2);
     renderPacketTranslation(translation);
+    refreshMusicReturnLinks(packet, translation);
     const route = translation.stack_route;
     const routeHint = route?.label
       ? ` Music推奨: ${route.label}${route.recommended_here ? "。再生で確認できます。" : "。drum-floorは候補として反映しました。"}`
@@ -349,11 +462,20 @@ function readLatestMusicStackPacket() {
     const raw = window.localStorage?.getItem(MUSIC_STACK_PACKET_STORAGE_KEY)
       || window.localStorage?.getItem(MUSIC_ORCHESTRA_PACKET_STORAGE_KEY);
     if (!raw) return false;
-    return receiveMusicStackPacket(JSON.parse(raw), "latest");
+    const payload = JSON.parse(raw);
+    const packet = musicPacketFromStackPayload(payload);
+    if (!packetMatchesBandRoomQuery(packet)) return false;
+    return receiveMusicStackPacket(payload, "latest");
   } catch (error) {
     updatePacketStatus(`latest SYNCを読めません: ${error.message}`, "error");
     return false;
   }
+}
+
+function readBandRoomQueryPacket() {
+  const packet = packetFromBandRoomQuery();
+  if (!packet) return false;
+  return receiveMusicStackPacket(packet, "band-room-query");
 }
 
 function setupMusicStackSyncReceiver() {
@@ -400,7 +522,7 @@ async function loadProfiles() {
     state.currentFrame = syncFrameControl(activeProfile());
     render();
     if (state.musicPacket.pendingSync) applyMusicPacketPreview({ message: "SYNC受信分をpreview controlsへ反映しました。再生は人間が押すまで鳴りません。" });
-    else readLatestMusicStackPacket();
+    else if (!readLatestMusicStackPacket()) readBandRoomQueryPacket();
   } catch (error) {
     state.loadStatus = "読み込み失敗";
     renderLoadError(refs, state, error);

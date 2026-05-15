@@ -241,6 +241,55 @@ h3 {
   padding: 10px;
 }
 
+.stack-return {
+  align-items: center;
+  background: rgba(36, 37, 33, 0.05);
+  border: 1px solid rgba(36, 37, 33, 0.14);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 54px;
+  padding: 9px 10px;
+}
+
+.stack-return-kicker {
+  color: var(--brick);
+  display: block;
+  font-family: "Trebuchet MS", Verdana, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  margin-bottom: 2px;
+  text-transform: uppercase;
+}
+
+.stack-return strong {
+  display: block;
+  font-size: 0.92rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.stack-return-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.stack-return-links a {
+  align-items: center;
+  border: 1px solid rgba(36, 37, 33, 0.18);
+  color: var(--coal);
+  display: inline-flex;
+  font-size: 0.9rem;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
 .packet-play-link {
   min-height: 44px;
   display: inline-flex;
@@ -970,6 +1019,18 @@ code {
   .role-panel,
   .workbench {
     grid-template-columns: 1fr;
+  }
+
+  .stack-return {
+    grid-template-columns: 1fr;
+  }
+
+  .stack-return-links {
+    justify-content: stretch;
+  }
+
+  .stack-return-links a {
+    flex: 1 1 130px;
   }
 
   .role-grid {

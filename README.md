@@ -200,7 +200,9 @@ anything.
   the preview. It never records microphone audio or starts playback by itself.
 - If Band Room opens drum-floor, the current song BPM/section/frame arrives as
   metadata; drum-floor uses the BPM hint for preview controls and still waits
-  for a human to press `再生`.
+  for a human to press `再生`. The Pages UI also shows return links back to
+  Band Room and Hazama FM; Band Room links include the source song when the
+  handoff supplied one.
 - `chill DRUMS`: open `chill/session.html`. chill owns piano, bass, flow, and
   the START/PANIC buttons; drum-floor only supplies the soft pocket adapter.
 - `OpenClaw raw candidate`: use the Surface CLI path to generate and inspect

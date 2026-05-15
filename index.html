@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Drum Floor | バンド用グルーブ生成プロファイル</title>
-    <link rel="stylesheet" href="style.css?v=play-entry-2" />
+    <link rel="stylesheet" href="style.css?v=stack-return-1" />
   </head>
   <body>
     <header class="topbar">
@@ -48,6 +48,16 @@
         </div>
         <div class="packet-box">
           <div id="music-packet-status" class="packet-status">MusicでSYNCすると自動受信します。貼り付け欄はfallbackです。</div>
+          <div class="stack-return" aria-label="Music Stack return links">
+            <div>
+              <span class="stack-return-kicker">return</span>
+              <strong id="music-return-context">Music Stack</strong>
+            </div>
+            <div class="stack-return-links">
+              <a id="return-band-room" href="https://quietbriony.github.io/Music/band-room.html?from=drum-floor">Band Room</a>
+              <a id="return-hazama-fm" href="https://quietbriony.github.io/Music/fm.html?from=drum-floor">Hazama FM</a>
+            </div>
+          </div>
           <a class="packet-play-link" href="#play">再生へ</a>
           <details>
             <summary>JSON fallbackを開く</summary>
@@ -127,6 +137,6 @@
       </section>
     </main>
 
-    <script type="module" src="app.js?v=play-entry-3"></script>
+    <script type="module" src="app.js?v=stack-return-1"></script>
   </body>
 </html>

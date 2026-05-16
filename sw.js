@@ -7,7 +7,7 @@
 ========================================================= */
 
 const CACHE_PREFIX = "drum-floor-pwa";
-const VERSION = `${CACHE_PREFIX}-v2`;
+const VERSION = `${CACHE_PREFIX}-v3`;
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const SCOPE_URL = new URL(self.registration.scope);
@@ -15,13 +15,13 @@ const SCOPE_URL = new URL(self.registration.scope);
 const PRECACHE_URLS = [
   "./",
   "index.html",
-  "style.css?v=pwa-2",
-  "app.js?v=pwa-2",
+  "style.css?v=pwa-3",
+  "app.js?v=pwa-3",
   "manifest.webmanifest",
   "profiles/groove-profiles.json",
   "patterns/drum-pattern-frames.json",
   "src/audio-analysis.js",
-  "src/audio-engine.js",
+  "src/audio-engine.js?v=pwa-3",
   "src/contracts.js",
   "src/coplayer.js",
   "src/groove-engine.js",

@@ -33,12 +33,12 @@ class PwaStaticContractChecks(unittest.TestCase):
         sw = read_text("sw.js")
         self.assertIn('href="manifest.webmanifest"', html)
         self.assertIn('navigator.serviceWorker.register("./sw.js")', html)
-        self.assertIn("style.css?v=pwa-2", html)
-        self.assertIn("app.js?v=pwa-2", html)
+        self.assertIn("style.css?v=pwa-3", html)
+        self.assertIn("app.js?v=pwa-3", html)
         self.assertIn('const CACHE_PREFIX = "drum-floor-pwa"', sw)
-        self.assertIn('const VERSION = `${CACHE_PREFIX}-v2`', sw)
-        self.assertIn('"style.css?v=pwa-2"', sw)
-        self.assertIn('"app.js?v=pwa-2"', sw)
+        self.assertIn('const VERSION = `${CACHE_PREFIX}-v3`', sw)
+        self.assertIn('"style.css?v=pwa-3"', sw)
+        self.assertIn('"app.js?v=pwa-3"', sw)
 
     def test_precache_targets_exist(self) -> None:
         sw = read_text("sw.js")

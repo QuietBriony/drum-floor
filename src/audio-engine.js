@@ -6,6 +6,8 @@ export class AudioEngine {
     this.destination = options.destination || null;
     this.masterLevel = Number.isFinite(options.gain) ? options.gain : 0.5;
     this.softGlue = Math.min(1, Math.max(0, Number(options.softGlue) || 0));
+    // Per-hit jitter so consecutive hits are never bit-identical (organic, not robotic).
+    this.hitSeed = (Math.random() * 0xffffffff) >>> 0;
     this.master = null;
     this.masterHighpass = null;
     this.masterShelf = null;
@@ -74,6 +76,21 @@ export class AudioEngine {
     if (!this.audioContext || !this.master) return;
     this.master.gain.cancelScheduledValues(this.audioContext.currentTime);
     this.master.gain.setTargetAtTime(0.0001, this.audioContext.currentTime, 0.01);
+  }
+
+  // Deterministic-per-call but ever-advancing PRNG: each hit pulls a fresh value
+  // so two hits at the same velocity still differ slightly. Range is [-1, 1).
+  hitRandom() {
+    this.hitSeed = (this.hitSeed + 0x6d2b79f5) >>> 0;
+    let value = this.hitSeed;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return (((value ^ (value >>> 14)) >>> 0) / 4294967296) * 2 - 1;
+  }
+
+  // Multiplicative jitter centred on 1: jitter(0.04) -> ~[0.96, 1.04].
+  jitter(amount) {
+    return 1 + this.hitRandom() * amount;
   }
 
   envelope(startTime, peak, attack, decay) {
@@ -199,28 +216,45 @@ export class AudioEngine {
   kick(time, velocity, kit) {
     if (this.isHardBop(kit)) {
       const loudness = Math.min(1.2, Math.max(0.05, velocity));
-      this.struckTone(time, kit.kick.peak * loudness, kit.kick.start, kit.kick.decay, kit.kick.tone, kit.kick.room * (0.7 + loudness * 0.5), kit.kick.room * 0.55);
-      this.acousticNoise(time + 0.001, kit.kick.beater * loudness, "bandpass", 2800 + loudness * 900, 0.024, 2.1, 0.025);
-      if (kit.kick.sub) this.struckTone(time + 0.006, kit.kick.sub * loudness, kit.kick.end * 0.72, kit.kick.decay * 1.25, "sine", kit.kick.room * 0.42, kit.kick.room * 0.34);
+      // Light per-hit jitter so repeated hard-bop kicks are not bit-identical.
+      const pitchJ = this.jitter(0.022);
+      const decayJ = this.jitter(0.05);
+      this.struckTone(time, kit.kick.peak * loudness, kit.kick.start * pitchJ, kit.kick.decay * decayJ, kit.kick.tone, kit.kick.room * (0.7 + loudness * 0.5), kit.kick.room * 0.55);
+      this.acousticNoise(time + 0.001, kit.kick.beater * loudness, "bandpass", (2800 + loudness * 900) * this.jitter(0.03), 0.024, 2.1, 0.025);
+      if (kit.kick.sub) this.struckTone(time + 0.006, kit.kick.sub * loudness, kit.kick.end * 0.72 * pitchJ, kit.kick.decay * 1.25 * decayJ, "sine", kit.kick.room * 0.42, kit.kick.room * 0.34);
       return;
     }
+    // Per-hit variation: harder hits punch the pitch sweep higher and ring a touch
+    // longer; small jitter keeps consecutive kicks from sounding machine-stamped.
+    const accent = Math.min(1.15, Math.max(0.05, velocity));
+    const decay = kit.kick.decay * (0.9 + accent * 0.16) * this.jitter(0.05);
+    const startFreq = kit.kick.start * (0.94 + accent * 0.12) * this.jitter(0.025);
+    // Tame the boom: roll the low-mid resonance off the body so it stops as soon
+    // as the transient is gone, instead of "pon"-ing on. 0.86 trims overall level.
     const osc = this.audioContext.createOscillator();
-    const gain = this.envelope(time, kit.kick.peak * velocity, 0.008, kit.kick.decay);
+    const bodyTrim = this.audioContext.createBiquadFilter();
+    bodyTrim.type = "lowpass";
+    bodyTrim.frequency.setValueAtTime(2400, time);
+    bodyTrim.frequency.exponentialRampToValueAtTime(220, time + decay * 0.7);
+    bodyTrim.Q.value = 0.5;
+    const gain = this.envelope(time, kit.kick.peak * velocity * 0.86, 0.008, decay);
     osc.type = kit.kick.tone;
-    osc.frequency.setValueAtTime(kit.kick.start, time);
-    osc.frequency.exponentialRampToValueAtTime(kit.kick.end, time + kit.kick.decay * 0.84);
-    osc.connect(gain).connect(this.master);
+    osc.frequency.setValueAtTime(startFreq, time);
+    osc.frequency.exponentialRampToValueAtTime(kit.kick.end, time + decay * 0.84);
+    osc.connect(bodyTrim).connect(gain).connect(this.master);
     osc.start(time);
-    osc.stop(time + kit.kick.decay + 0.08);
+    osc.stop(time + decay + 0.08);
     if (kit.kick.sub) {
+      // Shorter, quieter sub: the long sub tail was the boomy "pon". Trim its
+      // decay multiplier (1.35 -> 1.05) and level (0.7x) so the kick sits tight.
       const sub = this.audioContext.createOscillator();
-      const subGain = this.envelope(time + 0.002, kit.kick.sub * velocity, 0.012, kit.kick.decay * 1.35);
+      const subGain = this.envelope(time + 0.002, kit.kick.sub * velocity * 0.7, 0.012, decay * 1.05);
       sub.type = "sine";
-      sub.frequency.setValueAtTime(42, time);
-      sub.frequency.exponentialRampToValueAtTime(34, time + kit.kick.decay);
+      sub.frequency.setValueAtTime(42 * this.jitter(0.03), time);
+      sub.frequency.exponentialRampToValueAtTime(34, time + decay);
       sub.connect(subGain).connect(this.master);
       sub.start(time);
-      sub.stop(time + kit.kick.decay * 1.5);
+      sub.stop(time + decay * 1.25);
     }
   }
 
@@ -241,23 +275,33 @@ export class AudioEngine {
       if (articulation === "flam_light") {
         this.snare(time - 0.018, velocity * 0.36, kit, false, "drag");
       }
-      this.acousticNoise(time, kit.snare.stick * loudness, "highpass", 3100 + loudness * 1000, 0.028, 1.6, room * 0.25);
-      this.struckTone(time + 0.001, kit.snare.body * loudness, 190 - loudness * 20, 0.11 + loudness * 0.025, "triangle", room, room * 0.36);
-      this.acousticNoise(time + 0.004, kit.snare.noise * loudness, "bandpass", kit.snare.filter + loudness * 700, kit.snare.decay + loudness * 0.035, 2.4, room);
-      this.acousticNoise(time + 0.012, kit.snare.rattle * loudness * (articulation === "buzz" ? 1.35 : 1), "highpass", 5200 + loudness * 1400, (articulation === "buzz" ? 0.18 : 0.11) + loudness * 0.045, 0.9, room * 0.85);
+      // Light per-hit jitter so repeated hard-bop snares are not bit-identical.
+      const snFilterJ = this.jitter(0.035);
+      const snDecayJ = this.jitter(0.06);
+      this.acousticNoise(time, kit.snare.stick * loudness, "highpass", (3100 + loudness * 1000) * snFilterJ, 0.028, 1.6, room * 0.25);
+      this.struckTone(time + 0.001, kit.snare.body * loudness, (190 - loudness * 20) * this.jitter(0.018), (0.11 + loudness * 0.025) * snDecayJ, "triangle", room, room * 0.36);
+      this.acousticNoise(time + 0.004, kit.snare.noise * loudness, "bandpass", (kit.snare.filter + loudness * 700) * snFilterJ, (kit.snare.decay + loudness * 0.035) * snDecayJ, 2.4, room);
+      this.acousticNoise(time + 0.012, kit.snare.rattle * loudness * (articulation === "buzz" ? 1.35 : 1), "highpass", (5200 + loudness * 1400) * snFilterJ, (articulation === "buzz" ? 0.18 : 0.11) + loudness * 0.045, 0.9, room * 0.85);
       this.acousticNoise(time + 0.018, kit.snare.shell * loudness, "bandpass", 620, 0.1, 0.7, room * 0.7, room * 0.32);
       if (rim && kit.snare.rim) this.acousticNoise(time + 0.002, kit.snare.rim * loudness, "highpass", 3900, 0.042, 1.2, room * 0.35);
       return;
     }
-    this.noiseHit(time, kit.snare.noise * velocity, "bandpass", kit.snare.filter, kit.snare.decay, 2.2);
+    // Per-hit variation: velocity opens the noise filter and shortens the decay
+    // (accents = brighter/snappier, ghosts = darker/duller); jitter de-robotizes.
+    const accent = Math.min(1.2, Math.max(0.05, velocity));
+    const noiseFilter = kit.snare.filter * (0.82 + accent * 0.3) * this.jitter(0.04);
+    const noiseDecay = kit.snare.decay * (1.08 - accent * 0.16) * this.jitter(0.06);
+    this.noiseHit(time, kit.snare.noise * velocity, "bandpass", noiseFilter, noiseDecay, 2.2);
     const body = this.audioContext.createOscillator();
-    const gain = this.envelope(time, kit.snare.body * velocity, 0.004, 0.08);
+    const gain = this.envelope(time, kit.snare.body * velocity, 0.004, 0.08 * this.jitter(0.07));
+    const baseBody = kit === kitPresets.dub_space ? 150 : 185;
     body.type = "triangle";
-    body.frequency.value = kit === kitPresets.dub_space ? 150 : 185;
+    // Harder hits push the shell pitch up a little; small per-hit detune on top.
+    body.frequency.value = baseBody * (0.96 + accent * 0.08) * this.jitter(0.02);
     body.connect(gain).connect(this.master);
     body.start(time);
     body.stop(time + 0.11);
-    if (rim && kit.snare.rim) this.noiseHit(time + 0.002, kit.snare.rim * velocity, "highpass", 2400, 0.045, 1.4);
+    if (rim && kit.snare.rim) this.noiseHit(time + 0.002, kit.snare.rim * velocity, "highpass", 2400 * this.jitter(0.03), 0.045, 1.4);
   }
 
   hat(time, velocity, kit, open = false, articulation = "ride_tip") {
@@ -267,15 +311,24 @@ export class AudioEngine {
       const glue = this.softGlue;
       const room = kit.hat.room * (0.7 + loudness * 0.45 + glue * 0.35);
       const bell = articulation === "ride_bell";
-      const rideFreq = bell ? 4100 - glue * 280 : 6100 + loudness * 900 - glue * 950;
-      this.acousticNoise(time, kit.hat.ride * loudness * (bell ? 0.62 : 1 - glue * 0.12), "bandpass", rideFreq, decay + loudness * (bell ? 0.12 : 0.06) + glue * 0.018, bell ? 4.4 : 0.9, room);
-      this.acousticNoise(time + 0.004, kit.hat.clean * loudness * (1 - glue * 0.18), "highpass", kit.hat.filter + loudness * 650 - glue * 900, decay * 0.55, 0.58, room * 0.5);
+      // Light per-hit jitter: ride/hat is the most-repeated voice, most exposed to
+      // the "every hit identical" complaint. Bell is steadier, so jitter it less.
+      const hatFreqJ = this.jitter(bell ? 0.02 : 0.045);
+      const hatDecayJ = this.jitter(0.08);
+      const rideFreq = (bell ? 4100 - glue * 280 : 6100 + loudness * 900 - glue * 950) * hatFreqJ;
+      this.acousticNoise(time, kit.hat.ride * loudness * (bell ? 0.62 : 1 - glue * 0.12), "bandpass", rideFreq, (decay + loudness * (bell ? 0.12 : 0.06) + glue * 0.018) * hatDecayJ, bell ? 4.4 : 0.9, room);
+      this.acousticNoise(time + 0.004, kit.hat.clean * loudness * (1 - glue * 0.18), "highpass", (kit.hat.filter + loudness * 650 - glue * 900) * hatFreqJ, decay * 0.55 * hatDecayJ, 0.58, room * 0.5);
       if (loudness > 0.56 || bell) this.acousticNoise(time + 0.007, kit.hat.bell * loudness * (bell ? 1.35 : 0.72), "bandpass", 3600 - glue * 260, bell ? 0.14 : 0.075, 3.4, room * 0.42);
       if (kit.hat.dirty) this.acousticNoise(time + 0.01, kit.hat.dirty * loudness, "bandpass", 2400, decay * 0.8, 0.8, room * 0.3);
       return;
     }
-    this.noiseHit(time, kit.hat.clean * velocity, "highpass", kit.hat.filter, open ? kit.hat.open : kit.hat.closed, 0.8);
-    if (kit.hat.dirty) this.noiseHit(time + 0.002, kit.hat.dirty * velocity, "bandpass", kit.hat.filter * 0.62, open ? kit.hat.open * 0.7 : kit.hat.closed * 1.2, 1.8);
+    // Per-hit variation: repeated timekeeper hats are the most exposed to the
+    // "every hit identical" complaint, so jitter filter, decay and a touch of level.
+    const accent = Math.min(1.2, Math.max(0.04, velocity));
+    const hatFilter = kit.hat.filter * (0.93 + accent * 0.12) * this.jitter(0.05);
+    const hatDecay = (open ? kit.hat.open : kit.hat.closed) * this.jitter(0.09);
+    this.noiseHit(time, kit.hat.clean * velocity * this.jitter(0.05), "highpass", hatFilter, hatDecay, 0.8);
+    if (kit.hat.dirty) this.noiseHit(time + 0.002, kit.hat.dirty * velocity, "bandpass", kit.hat.filter * 0.62 * this.jitter(0.04), (open ? kit.hat.open * 0.7 : kit.hat.closed * 1.2) * this.jitter(0.08), 1.8);
   }
 
   ghost(time, velocity, kit, articulation = "brush") {

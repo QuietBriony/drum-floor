@@ -11,8 +11,15 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
     <link rel="stylesheet" href="style.css?v=pwa-2" />
+    <style>
+      .share-link-button{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));z-index:1200;min-height:30px;border:1px solid rgba(210,235,255,.26);border-radius:999px;background:rgba(10,18,26,.48);color:rgba(230,245,255,.78);font:11px/1 system-ui,-apple-system,Segoe UI,sans-serif;letter-spacing:.08em;padding:0 9px;cursor:pointer;opacity:.66;backdrop-filter:blur(8px)}
+      .share-link-button:hover,.share-link-button:focus-visible{opacity:1}
+      .share-link-status{position:fixed;top:calc(48px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));z-index:1200;max-width:min(320px,calc(100vw - 20px));overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid rgba(210,235,255,.18);border-radius:999px;background:rgba(10,18,26,.66);color:rgba(230,245,255,.72);font:10px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;padding:7px 9px;backdrop-filter:blur(8px)}
+    </style>
   </head>
   <body>
+    <button class="share-link-button" type="button" data-share-link aria-label="Share or copy this page URL">URL</button>
+    <span class="share-link-status" data-share-link-status hidden></span>
     <header class="topbar">
       <a class="brand" href="./" aria-label="Drum Floor ホーム">
         <span class="brand-mark" aria-hidden="true"></span>
@@ -144,6 +151,44 @@
     </main>
 
     <script type="module" src="app.js?v=pwa-2"></script>
+    <script>
+      (() => {
+        const button = document.querySelector("[data-share-link]");
+        const status = document.querySelector("[data-share-link-status]");
+        if (!button) return;
+        const label = button.textContent;
+        const showUrl = (url) => {
+          button.title = url;
+          if (status) {
+            status.hidden = false;
+            status.textContent = url;
+          }
+        };
+        const copyUrl = async (url) => {
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(url);
+            return true;
+          }
+          return false;
+        };
+        button.addEventListener("click", async () => {
+          const url = window.location.href;
+          showUrl(url);
+          try {
+            if (navigator.share) await navigator.share({ title: document.title || "Drum Floor", url });
+            else if (!(await copyUrl(url))) window.prompt("Copy URL", url);
+            button.textContent = "copied";
+          } catch (error) {
+            if (error?.name !== "AbortError") window.prompt("Copy URL", url);
+          }
+          window.clearTimeout(button._shareLinkTimer);
+          button._shareLinkTimer = window.setTimeout(() => {
+            button.textContent = label;
+            if (status) status.hidden = true;
+          }, 4200);
+        });
+      })();
+    </script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {

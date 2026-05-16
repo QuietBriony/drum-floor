@@ -224,37 +224,34 @@ export class AudioEngine {
       if (kit.kick.sub) this.struckTone(time + 0.006, kit.kick.sub * loudness, kit.kick.end * 0.72 * pitchJ, kit.kick.decay * 1.25 * decayJ, "sine", kit.kick.room * 0.42, kit.kick.room * 0.34);
       return;
     }
-    // Per-hit variation: harder hits punch the pitch sweep higher and ring a touch
-    // longer; small jitter keeps consecutive kicks from sounding machine-stamped.
+    // Per-hit variation: harder hits punch the pitch sweep higher and ring a
+    // touch longer; small jitter keeps consecutive kicks from sounding stamped.
     const accent = Math.min(1.15, Math.max(0.05, velocity));
-    const decay = kit.kick.decay * (0.9 + accent * 0.16) * this.jitter(0.05);
+    const decay = kit.kick.decay * (0.92 + accent * 0.16) * this.jitter(0.05);
     const startFreq = kit.kick.start * (0.94 + accent * 0.12) * this.jitter(0.025);
-    // Tame the boom: roll the low-mid resonance off the body so it stops as soon
-    // as the transient is gone, instead of "pon"-ing on. 0.86 trims overall level.
+    // The body must RING — a kick needs sustain, not just a transient, or it
+    // reads as a "pop"/burst. No body lowpass (the earlier fast sweep zapped the
+    // tone into a burst); de-booming is done on the sub below. Path stays clean.
     const osc = this.audioContext.createOscillator();
-    const bodyTrim = this.audioContext.createBiquadFilter();
-    bodyTrim.type = "lowpass";
-    bodyTrim.frequency.setValueAtTime(2400, time);
-    bodyTrim.frequency.exponentialRampToValueAtTime(220, time + decay * 0.7);
-    bodyTrim.Q.value = 0.5;
-    const gain = this.envelope(time, kit.kick.peak * velocity * 0.86, 0.008, decay);
+    const gain = this.envelope(time, kit.kick.peak * velocity * 0.94, 0.008, decay);
     osc.type = kit.kick.tone;
     osc.frequency.setValueAtTime(startFreq, time);
     osc.frequency.exponentialRampToValueAtTime(kit.kick.end, time + decay * 0.84);
-    osc.connect(bodyTrim).connect(gain).connect(this.master);
+    osc.connect(gain).connect(this.master);
     osc.start(time);
     osc.stop(time + decay + 0.08);
     if (kit.kick.sub) {
-      // Shorter, quieter sub: the long sub tail was the boomy "pon". Trim its
-      // decay multiplier (1.35 -> 1.05) and level (0.7x) so the kick sits tight.
+      // The sub is the low body/weight: keep it present so the kick lands as a
+      // "doom" not a thin pop — but a touch shorter/quieter than the original
+      // boomy 1.35x tail so it doesn't "pon" on. decay 1.2x, level 0.88x.
       const sub = this.audioContext.createOscillator();
-      const subGain = this.envelope(time + 0.002, kit.kick.sub * velocity * 0.7, 0.012, decay * 1.05);
+      const subGain = this.envelope(time + 0.002, kit.kick.sub * velocity * 0.88, 0.012, decay * 1.2);
       sub.type = "sine";
       sub.frequency.setValueAtTime(42 * this.jitter(0.03), time);
       sub.frequency.exponentialRampToValueAtTime(34, time + decay);
       sub.connect(subGain).connect(this.master);
       sub.start(time);
-      sub.stop(time + decay * 1.25);
+      sub.stop(time + decay * 1.4);
     }
   }
 

@@ -1,7 +1,7 @@
 import { createGrooveDecision, createManualIntent, updatePhraseMemory } from "./coplayer.js";
 import { defaultBandInputFrame, defaultControls, hashString, sanitizeControls } from "./contracts.js";
 import { generateGrooveBar } from "./groove-engine.js";
-import { AudioEngine } from "./audio-engine.js?v=pwa-3";
+import { AudioEngine } from "./audio-engine.js?v=pwa-4";
 import { translateMusicSessionPacket } from "./music-session-adapter.js";
 
 const DEFAULT_SESSION = Object.freeze({

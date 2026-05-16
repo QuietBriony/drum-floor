@@ -1,5 +1,5 @@
 import { AudioInputAnalyzer } from "./src/audio-analysis.js";
-import { AudioEngine } from "./src/audio-engine.js?v=pwa-3";
+import { AudioEngine } from "./src/audio-engine.js?v=pwa-4";
 import { createGrooveDecision, createManualIntent, updatePhraseMemory } from "./src/coplayer.js";
 import { defaultBandInputFrame, defaultControls, sanitizeControls } from "./src/contracts.js";
 import { generateGrooveBar } from "./src/groove-engine.js";

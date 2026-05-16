@@ -206,6 +206,15 @@ function panicStop() {
   render();
 }
 
+function quietForPageLifecycle(reason) {
+  clearPlaybackTimer();
+  state.playback.isPlaying = false;
+  state.bandFrame = audioInput.stop();
+  audioEngine.panic();
+  if (state.bandFrame) state.bandFrame.status = `paused for ${reason}`;
+  render();
+}
+
 async function enableInput() {
   try {
     state.bandFrame = await audioInput.start();
@@ -818,10 +827,14 @@ document.addEventListener("change", (event) => {
   render();
 });
 
-window.addEventListener("pagehide", () => {
-  clearPlaybackTimer();
-  audioInput.stop();
+window.addEventListener("pagehide", () => quietForPageLifecycle("pagehide"));
+window.addEventListener("blur", () => {
+  if (document.visibilityState === "hidden") quietForPageLifecycle("screen lock");
 });
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") quietForPageLifecycle("background");
+});
+document.addEventListener("freeze", () => quietForPageLifecycle("freeze"));
 
 setupMusicStackSyncReceiver();
 loadProfiles();

@@ -37,7 +37,8 @@
 - 1PR = 1目的（小さく改修）
 - GitHub Pages は `main` + `/(root)` を公開元にする
 - Pages UI は profile確認、使い方確認、開発状況把握のための入口として使う
-- Pages UI は PWA shell 対応。ホーム画面から standalone 起動でき、`sw.js` は app shell / local modules / profile JSON / pattern JSON / icons だけを repo 専用 cache に保持する
+- Pages UI は PWA shell 対応。ホーム画面から standalone 起動でき、`sw.js` は app shell / local modules / profile JSON / pattern JSON / icons だけを repo 専用 cache に保持する。画面ロック/バックグラウンド時は Web Audio と入力解析を静かに止め、再生は人間の再STARTに戻す
+- PWA shell の静的契約は `python tests/test_pwa_static_contract.py` で確認する
 - ブラウザ音生成と音入力予測は将来実装対象だが、最初は合成音・ルールベース・手動停止を前提にする
 - Pages UI の自動生成プレビューは Web Audio 合成音のみを使い、BPM/tap/section/kit/energy/density/swing/humanize を手動操作できる
 - AI Live画面は通常時にkit/pocket/energy/space中心のシンプル操作を出し、score/promotionなどは開発パネルに畳む

@@ -1,6 +1,7 @@
 {
   "name": "Drum Floor",
   "short_name": "Drum Floor",
+  "id": "./",
   "description": "Band groove preview and Music SYNC drum co-player.",
   "start_url": "./",
   "scope": "./",

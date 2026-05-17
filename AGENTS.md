@@ -62,13 +62,13 @@ python -m pytest tests/ -q
 
 ## Cache buster discipline
 
-PWA shell の cache version は `sw.js` の `const VERSION`（現在 `drum-floor-pwa-v2`、
+PWA shell の cache version は `sw.js` の `const VERSION`（現在 `drum-floor-pwa-v4`、
 `CACHE_PREFIX = "drum-floor-pwa"` 由来）。
 
 UI（`index.html` / `style.css` / `app.js` / `src/*.js`）を変えたら **同期 bump**:
 
-1. `sw.js` の `CACHE_PREFIX` 連番 — 例 `drum-floor-pwa` の `v2` → `v3`。
-2. `index.html` / `sw.js` の query string `?v=pwa-2` → `?v=pwa-3`（`style.css` / `app.js`）。
+1. `sw.js` の `CACHE_PREFIX` 連番 — 例 `drum-floor-pwa` の `v4` → `v5`。
+2. `index.html` / `sw.js` の query string `?v=pwa-4` → `?v=pwa-5`（`style.css` / `app.js`）。
 3. `sw.js` `PRECACHE_URLS` に追加 module があれば登録する。
 
 precache list の網羅は `python tests/test_pwa_static_contract.py` が検証する。

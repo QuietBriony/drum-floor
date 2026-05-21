@@ -33,12 +33,14 @@ class PwaStaticContractChecks(unittest.TestCase):
         sw = read_text("sw.js")
         self.assertIn('href="manifest.webmanifest"', html)
         self.assertIn('navigator.serviceWorker.register("./sw.js")', html)
-        self.assertIn("style.css?v=pwa-4", html)
-        self.assertIn("app.js?v=pwa-4", html)
+        # Per BL-011 style: pattern-based, no hardcoded number — the lockstep
+        # drift check elsewhere catches mismatched bumps.
+        self.assertRegex(html, r"style\.css\?v=pwa-\d+")
+        self.assertRegex(html, r"app\.js\?v=pwa-\d+")
         self.assertIn('const CACHE_PREFIX = "drum-floor-pwa"', sw)
-        self.assertIn('const VERSION = `${CACHE_PREFIX}-v4`', sw)
-        self.assertIn('"style.css?v=pwa-4"', sw)
-        self.assertIn('"app.js?v=pwa-4"', sw)
+        self.assertRegex(sw, r"const VERSION = `\$\{CACHE_PREFIX\}-v\d+`")
+        self.assertRegex(sw, r'"style\.css\?v=pwa-\d+"')
+        self.assertRegex(sw, r'"app\.js\?v=pwa-\d+"')
 
     def test_precache_targets_exist(self) -> None:
         sw = read_text("sw.js")

@@ -29,6 +29,9 @@ Ableton, touch EP-133, operate VCV, upload audio, or bypass human review.
   Director frame contract and no-samples boundary.
 - [Groove profile schema](./groove-profile-schema.md): band groove profile
   vocabulary and profile validation expectations.
+- [Probability interpolation from test](./probability-interpolation-from-test.md):
+  docs-only translation of archived 16-step probability blend into deterministic
+  groove grammar vocabulary.
 - [Input/output example](./input-output-example.md): profile-to-drum-output
   example.
 - [Ableton preview checklist](./ableton-preview-checklist.md): listening check

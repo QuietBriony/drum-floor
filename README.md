@@ -6,6 +6,22 @@
 - v0.2で自動グルーヴ生成（ゆらぎ/フィル）を導入できる構造にする
 
 ## Quick Start
+
+### ブラウザで使う（AI 共演ドラマー・看板用途）
+VCV パッチとは別に、`index.html`（[本番](https://quietbriony.github.io/drum-floor/) /
+ローカルは `python -m http.server`）はルールベースの **AI 共演ドラマー**として単体で
+鳴らせる。ドラム不在のバンドで**周りの音を聴きながら**グルーヴを作るのが看板用途:
+
+1. drum-floor を開く（SYNC 不要・単独で OK）。
+2. **「🎤 バンドを聴いて鳴らす」**（既定の演奏画面）を押してマイクを許可。
+3. 周りで音を出す（楽器 / 手拍子 / 口ドラム）→ その熱量・刻み・テンポにドラムが追従。
+4. `AI mode` は follow（半分追従）/ lead（ほぼ自分主導）/ lock（完全手動）。開発パネルで切替。
+
+マイクは**録音せず特徴量だけ**を解析する（音声保存なし）。曲ベースで使うなら
+Band Room / Hazama FM から `SYNC` すると kit / pocket が自動で寄る（`再生（SYNC/手動）`）。
+再生は常に人間が押すまで始まらない。
+
+### VCV Rack で使う
 1. VCV Rack を起動
 2. `patches/v0.1_drum_floor.vcv` を開く
 3. Audio I/F（UR44 or KA2）を選択

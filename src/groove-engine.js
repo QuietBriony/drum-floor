@@ -170,6 +170,13 @@ export function generateGrooveBar(profile, controls, decision, memory, patternFr
   const phraseLength = stats.phraseLength;
   const barInPhrase = memory.barIndex % phraseLength;
   const barRole = phraseRole(barInPhrase, phraseLength);
+  // Phrase-stable streams: structural choices (which fill bars, which kick
+  // displacement steps) must hold across a whole phrase like a drummer locking
+  // a riff — not re-roll every bar. Keyed on the phrase index, so all bars of
+  // one phrase agree. The per-bar `rng` still drives bar-to-bar humanize.
+  const phraseIndex = Math.floor(memory.barIndex / phraseLength);
+  const figureRng = seededRng([profile.id, patternFrame?.id || "no-frame", controls.section, controls.kit, controls.variationSeed, phraseIndex, "kickfigure"]);
+  const fillRng = seededRng([profile.id, patternFrame?.id || "no-frame", controls.section, controls.variationSeed, phraseIndex, "fillslots"]);
   const energy = decision.effectiveEnergy;
   const density = clamp(stats.densityScore * roleDensityScalar(barRole), 0.05, 1);
   const isHalfTime = profile.id === "dubby_half_time" || (controls.section === "bridge" && decision.spaceIntent > 0.55);
@@ -190,7 +197,7 @@ export function generateGrooveBar(profile, controls, decision, memory, patternFr
   stats.densityScore = clamp(density * (1 - directorSpace * 0.14) + (1 - directorSpace) * 0.06, 0.05, 1);
   stats.ghostScore = clamp(Math.max(stats.ghostScore, ghostGlue * 0.72) * (barRole === "breathe" ? 1.18 : 1), 0, 1);
 
-  const frameFillActive = (decision.fillIntent > 0.46 && barInPhrase >= 6) || explode;
+  const frameFillActive = (decision.fillIntent > 0.46 && barInPhrase >= phraseLength - 2) || explode;
   applyPatternFrame(events, patternFrame, {
     fillActive: frameFillActive,
     crashAllowed: controls.crashGate && (barInPhrase === 0 || barInPhrase === phraseLength - 1 || explode || recover),
@@ -207,9 +214,9 @@ export function generateGrooveBar(profile, controls, decision, memory, patternFr
   if (!isHalfTime && !space) addEvent(events, { step: 12, part: "snare", velocity: (0.74 + energy * 0.2) * velocityBase, microOffsetMs: snareLagMs, articulation: barRole === "build" ? "rim" : "stick", reason: "backbeat return" });
 
   if ((density > 0.32 || isHeavy) && !preLift) addEvent(events, { step: 8, part: "kick", velocity: 0.52 + energy * 0.26, microOffsetMs: kickPushMs, reason: "mid-bar anchor" });
-  if ((density > 0.52 || isBreakbeat) && !space) addEvent(events, { step: rng() > 0.45 ? 10 : 11, part: "kick", velocity: 0.38 + density * 0.3, microOffsetMs: kickPushMs, reason: "density response" });
-  if ((density > 0.68 || profile.id === "mixture_shout") && !preLift) addEvent(events, { step: rng() > 0.5 ? 7 : 15, part: "kick", velocity: 0.36 + energy * 0.26, microOffsetMs: kickPushMs, reason: "riff pickup" });
-  if (isPocket && rng() > 0.3 && !explode) addEvent(events, { step: rng() > 0.5 ? 3 : 6, part: "kick", velocity: 0.34, microOffsetMs: 5, reason: "soft displacement" });
+  if ((density > 0.52 || isBreakbeat) && !space) addEvent(events, { step: figureRng() > 0.45 ? 10 : 11, part: "kick", velocity: 0.38 + density * 0.3, microOffsetMs: kickPushMs, reason: "density response" });
+  if ((density > 0.68 || profile.id === "mixture_shout") && !preLift) addEvent(events, { step: figureRng() > 0.5 ? 7 : 15, part: "kick", velocity: 0.36 + energy * 0.26, microOffsetMs: kickPushMs, reason: "riff pickup" });
+  if (isPocket && rng() > 0.3 && !explode) addEvent(events, { step: figureRng() > 0.5 ? 3 : 6, part: "kick", velocity: 0.34, microOffsetMs: 5, reason: "soft displacement" });
   if (isBreakbeat && !space) {
     addEvent(events, { step: 3, part: "kick", velocity: 0.44 + rng() * 0.18, reason: "breakbeat stagger" });
     addEvent(events, { step: 6, part: "snare", velocity: 0.26 + rng() * 0.18, articulation: "drag", reason: "break ghost response" });
@@ -228,11 +235,15 @@ export function generateGrooveBar(profile, controls, decision, memory, patternFr
   });
 
   const ghostCandidates = isBreakbeat ? [2, 5, 6, 9, 13, 14] : isPocket ? [3, 5, 7, 11, 13] : [5, 11, 13];
+  // Suppress procedural ghosts only on the deliberate one-bar pre-lift gap, not
+  // across the whole multi-bar `turn` role (which spans 3-5 bars at PL 16/32 and
+  // used to flatline ghost glue right before the lift).
+  const ghostGap = decision.phraseAction === "pre_lift_gap" || barInPhrase === phraseLength - 2;
   ghostCandidates.forEach((step) => {
-    if (!preLift && rng() < stats.ghostScore * (isPocket ? 0.7 : 0.48)) addEvent(events, { step, part: "ghost", velocity: 0.16 + rng() * 0.24, microOffsetMs: stats.humanizeMs / 2 + Math.round(snareLagMs * 0.5), articulation: rng() > 0.72 ? "buzz" : barRole === "breathe" ? "brush" : "drag", reason: "human pocket texture" });
+    if (!ghostGap && rng() < stats.ghostScore * (isPocket ? 0.7 : 0.48)) addEvent(events, { step, part: "ghost", velocity: 0.16 + rng() * 0.24, microOffsetMs: stats.humanizeMs / 2 + Math.round(snareLagMs * 0.5), articulation: rng() > 0.72 ? "buzz" : barRole === "breathe" ? "brush" : "drag", reason: "human pocket texture" });
   });
 
-  const slots = fillSlots(profile, controls, decision, stats, rng);
+  const slots = fillSlots(profile, controls, decision, stats, fillRng);
   const fillActive = slots.includes(barInPhrase) || explode && decision.fillIntent > 0.42;
   if (fillActive) {
     const longFill = profile.fill_policy?.types?.includes("long") && (energy > 0.6 || isBreakbeat || explode);
@@ -267,6 +278,6 @@ export function generateGrooveBar(profile, controls, decision, memory, patternFr
         hatSwing
       }
     },
-    events: events.sort((a, b) => a.step - b.step || partOrder[a.part] - partOrder[b.part])
+    events: events.sort((a, b) => a.step - b.step || (partOrder[a.part] ?? 99) - (partOrder[b.part] ?? 99))
   };
 }

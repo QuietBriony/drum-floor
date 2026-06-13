@@ -1,12 +1,12 @@
 import { AudioInputAnalyzer } from "./src/audio-analysis.js";
-import { AudioEngine } from "./src/audio-engine.js?v=pwa-5";
+import { AudioEngine } from "./src/audio-engine.js?v=pwa-6";
 import { createGrooveDecision, createManualIntent, updatePhraseMemory } from "./src/coplayer.js";
 import { defaultBandInputFrame, defaultControls, sanitizeControls } from "./src/contracts.js";
 import { generateGrooveBar } from "./src/groove-engine.js";
 import { createControlState, randomizeVariation, tapTempo, updateControl } from "./src/manual-controls.js";
 import { MidiOutput } from "./src/midi-output.js";
 import { translateMusicSessionPacket } from "./src/music-session-adapter.js?v=band-room-bpm-1";
-import { renderAll, renderLoadError } from "./src/ui-render.js?v=organic-flow-v1";
+import { renderAll, renderLoadError } from "./src/ui-render.js?v=organic-flow-v2";
 
 const MUSIC_STACK_PACKET_STORAGE_KEY = "qb:music-stack:latest-packet:v1";
 const MUSIC_STACK_CHANNEL_NAME = "qb:music-stack:v1";
@@ -227,6 +227,32 @@ async function enableInput() {
 function disableInput() {
   state.bandFrame = audioInput.stop();
   render();
+}
+
+// One-tap entry for the "drummer-less band, follow the room" use case:
+// enable the mic, switch the co-player to follow, and start. Previously the
+// mic + aiMode lived only in the dev panel, so this path had no front door.
+async function listenToBand() {
+  // micNotice survives render() (updateCurrentBar overwrites bandFrame from the
+  // analyzer each tick, so a denial status can't live there).
+  state.micNotice = null;
+  try {
+    state.bandFrame = await audioInput.start();
+  } catch (error) {
+    state.micNotice = error && error.name === "NotAllowedError"
+      ? "マイク許可が必要です（ブラウザのマイク設定を確認）"
+      : `マイクを使えません: ${error?.message || error}`;
+    render();
+    return;
+  }
+  updateControl(state.controlState, "aiMode", "follow", activeProfile());
+  await startPlayback();
+}
+
+function stopListening() {
+  state.micNotice = null;
+  stopPlayback();
+  disableInput();
 }
 
 async function connectMidi() {
@@ -730,6 +756,8 @@ document.addEventListener("click", (event) => {
     updateControl(state.controlState, "liveMode", !state.controlState.controls.liveMode, activeProfile());
     render();
   }
+  if (action === "listen-band") listenToBand();
+  if (action === "stop-listening") stopListening();
   if (action === "enable-input") enableInput();
   if (action === "disable-input") disableInput();
   if (action === "connect-midi") connectMidi();

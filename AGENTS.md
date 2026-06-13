@@ -62,7 +62,7 @@ python -m pytest tests/ -q
 
 ## Cache buster discipline
 
-PWA shell の cache version は `sw.js` の `const VERSION`（現在 `drum-floor-pwa-v4`、
+PWA shell の cache version は `sw.js` の `const VERSION`（現在 `drum-floor-pwa-v6`、
 `CACHE_PREFIX = "drum-floor-pwa"` 由来）。
 
 UI（`index.html` / `style.css` / `app.js` / `src/*.js`）を変えたら **同期 bump**:

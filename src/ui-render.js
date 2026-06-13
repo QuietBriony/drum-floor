@@ -401,6 +401,15 @@ function renderPreviewView(profile, state) {
   const stats = bar.stats;
   const showAdvanced = controls.liveMode;
   const modeLabel = showAdvanced ? "演奏画面に戻る" : "開発パネルを表示";
+  // 「バンドを聴いて鳴らす」= マイク有効化 + follow + 再生 を 1 タップ。
+  // これまで mic / aiMode は開発パネルの奥に埋もれていて導線が無かった。
+  const listening = !!state.bandFrame.inputEnabled;
+  const micButton = listening
+    ? `<button class="preview-button danger" type="button" data-action="stop-listening">🎤 追従を止める</button>`
+    : `<button class="preview-button primary-play" type="button" data-action="listen-band">🎤 バンドを聴いて鳴らす</button>`;
+  const micReadout = listening
+    ? `<span class="preview-state">🎤 音量 ${Math.round(state.bandFrame.inputLevel * 100)}% / 刻み ${Math.round(state.bandFrame.onsetRate * 100)}% / ~${state.bandFrame.roughTempo || "?"}BPM (${escapeHtml(controls.aiMode)})</span>`
+    : (state.micNotice ? `<span class="preview-state">🎤 ${escapeHtml(state.micNotice)}</span>` : "");
   const liveButtons = showAdvanced ? `
         <button class="preview-button primary-play" type="button" data-action="start">${state.playback.isPlaying ? "再スタート" : "再生"}</button>
         <button class="preview-button secondary" type="button" data-action="stop">停止</button>
@@ -409,15 +418,17 @@ function renderPreviewView(profile, state) {
         <button class="preview-button secondary" type="button" data-action="variation">Variation更新</button>
         <button class="preview-button secondary" type="button" data-action="live-toggle">${modeLabel}</button>`
     : `
-        <button class="preview-button primary-play" type="button" data-action="start">${state.playback.isPlaying ? "再スタート" : "再生"}</button>
+        ${micButton}
+        <button class="preview-button secondary" type="button" data-action="start">${state.playback.isPlaying ? "再スタート" : "再生（SYNC/手動）"}</button>
         <button class="preview-button secondary" type="button" data-action="stop">停止</button>
         <button class="preview-button secondary" type="button" data-action="live-toggle">${modeLabel}</button>`;
   return `<div class="grid${showAdvanced ? " live-grid" : " simple-live-grid"}">
     ${card("AI Live Groove Co-player", `
-      <p class="card-copy">まずは <strong>再生</strong>。必要なら <strong>kit / pocket</strong> だけ変える。細かい調整は開発パネルに畳んでいます。</p>
+      <p class="card-copy"><strong>🎤 バンドを聴いて鳴らす</strong> = マイクで周りの音を聴き、その熱量に合わせてドラムが追従（録音なし・特徴量だけ）。<strong>再生</strong> = 曲SYNCや手動で鳴らす。ドラム不在のバンドなら 🎤 から。</p>
       <div class="preview-controls live-controls">
         ${liveButtons}
         <span class="preview-state">${state.playback.isPlaying ? "再生中" : "停止中"} / bar ${bar.barIndex} / ${controls.bpm} BPM</span>
+        ${micReadout}
       </div>`, true)}
     ${renderMusicSyncRoleCard(state)}
     ${renderQuickStartCard(profile, controls, frame)}

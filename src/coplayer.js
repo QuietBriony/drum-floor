@@ -14,28 +14,42 @@ export function createManualIntent(controls) {
     fillDemand: controls.fillDemand / 100,
     crashGate: controls.crashGate,
     aiMode: controls.aiMode,
-    inputLock: controls.inputLock
+    inputLock: controls.inputLock,
+    phraseLength: controls.phraseLength
   };
 }
 
+function safePhraseLength(value) {
+  return [8, 16, 32].includes(Number(value)) ? Number(value) : 16;
+}
+
 export function createGrooveDecision(profile, manualIntent, bandInput, memory) {
-  const barInPhrase = memory.barIndex % 8;
+  // Phrase clock must match groove-engine's (memory.barIndex % phraseLength).
+  // Previously hardcoded %8, so at phraseLength 16/32 the climax/recover gates
+  // desynced from the engine's build->release arc (explode fired mid-phrase).
+  // At phraseLength=8 every derived literal below is unchanged (PL-2=6, PL-1=7,
+  // PL-3=5, PL-4=4), so the common short-phrase feel does not regress.
+  const phraseLength = safePhraseLength(manualIntent.phraseLength);
+  const lastBar = phraseLength - 1;
+  const preLiftBar = phraseLength - 2;
+  const thirdBar = phraseLength - 3;
+  const barInPhrase = memory.barIndex % phraseLength;
   const inputLevel = manualIntent.inputLock ? 0 : bandInput.inputLevel;
   const inputDensity = manualIntent.inputLock ? 0 : bandInput.density;
   const onsetRate = manualIntent.inputLock ? 0 : bandInput.onsetRate;
   const inputEnergy = clamp(inputLevel * 0.42 + inputDensity * 0.28 + onsetRate * 0.3, 0, 1);
   const followBlend = manualIntent.aiMode === "lead" ? 0.24 : manualIntent.aiMode === "lock" ? 0 : 0.5;
   const effectiveEnergy = clamp(manualIntent.energy * (1 - followBlend) + inputEnergy * followBlend, 0, 1);
-  const phraseLift = barInPhrase >= 5 ? (barInPhrase - 4) / 3 : 0;
+  const phraseLift = barInPhrase >= thirdBar ? (barInPhrase - (phraseLength - 4)) / 3 : 0;
   const phraseRecovery = barInPhrase === 0 && memory.lastPhraseAction === "explode" ? 0.4 : 0;
-  const spaceIntent = clamp(manualIntent.space * 0.72 + (barInPhrase === 5 ? 0.24 : 0) + phraseRecovery - effectiveEnergy * 0.2, 0, 1);
+  const spaceIntent = clamp(manualIntent.space * 0.72 + (barInPhrase === thirdBar ? 0.24 : 0) + phraseRecovery - effectiveEnergy * 0.2, 0, 1);
   const liftIntent = clamp(manualIntent.lift * 0.58 + effectiveEnergy * 0.22 + phraseLift * 0.2 - spaceIntent * 0.12, 0, 1);
-  const dropIntent = clamp(spaceIntent * 0.55 + (barInPhrase === 5 ? 0.2 : 0) + (manualIntent.risk > 0.72 ? 0.08 : 0), 0, 1);
+  const dropIntent = clamp(spaceIntent * 0.55 + (barInPhrase === thirdBar ? 0.2 : 0) + (manualIntent.risk > 0.72 ? 0.08 : 0), 0, 1);
   const fillIntent = clamp(manualIntent.fillDemand * 0.5 + liftIntent * 0.34 + onsetRate * 0.12 + manualIntent.risk * 0.12 - spaceIntent * 0.18, 0, 1);
   const crashIntent = manualIntent.crashGate ? clamp(liftIntent * 0.58 + effectiveEnergy * 0.16 + (barInPhrase === 0 ? 0.22 : 0) - spaceIntent * 0.18, 0, 1) : 0;
   let phraseAction = "lock";
-  if (barInPhrase === 6 && liftIntent > 0.42) phraseAction = "pre_lift_gap";
-  else if (barInPhrase === 7 && (liftIntent > 0.5 || fillIntent > 0.52)) phraseAction = "explode";
+  if (barInPhrase === preLiftBar && liftIntent > 0.42) phraseAction = "pre_lift_gap";
+  else if (barInPhrase === lastBar && (liftIntent > 0.5 || fillIntent > 0.52)) phraseAction = "explode";
   else if (barInPhrase === 0 && memory.lastPhraseAction === "explode") phraseAction = "recover";
   else if (spaceIntent > 0.68) phraseAction = "space";
   else if (liftIntent > 0.62 || effectiveEnergy > 0.72) phraseAction = "build";
@@ -43,7 +57,7 @@ export function createGrooveDecision(profile, manualIntent, bandInput, memory) {
   const reasons = [
     `${profile.id} / ${manualIntent.section}`,
     `mode=${manualIntent.aiMode}`,
-    `phrase=${barInPhrase + 1}/8`,
+    `phrase=${barInPhrase + 1}/${phraseLength}`,
     `action=${phraseAction}`,
     bandInput.inputEnabled ? `input level ${Math.round(inputLevel * 100)}%` : "manual only",
     spaceIntent > 0.55 ? "間を作る" : "土台維持",

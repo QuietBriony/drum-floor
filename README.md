@@ -230,3 +230,7 @@ anything.
 The Pages top screen now mirrors these three roles as cards. Use the highlighted
 standalone card when you want sound from this page; use the other two cards as
 route reminders.
+
+### 2026-09-30 ブラウザ再生の安定化
+
+小節をAudioContextの時計へ固定し、画面描画やtimerの遅れがBPMへ積み重ならないようにします。停止時は小節内の予約音もキャンセル。ノイズbufferを再利用し、各打点のノードとroom/body sendを終了時に解放します。マイク・MIDI・candidate promotionの手動境界は同じです。実iPhoneの長時間試聴は未確認です。

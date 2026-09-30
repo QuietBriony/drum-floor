@@ -1,5 +1,5 @@
 import { AudioInputAnalyzer } from "./src/audio-analysis.js";
-import { AudioEngine } from "./src/audio-engine.js?v=pwa-7";
+import { AudioEngine } from "./src/audio-engine.js?v=pwa-8";
 import { createGrooveDecision, createManualIntent, updatePhraseMemory } from "./src/coplayer.js";
 import { defaultBandInputFrame, defaultControls, sanitizeControls } from "./src/contracts.js";
 import { generateGrooveBar } from "./src/groove-engine.js";
@@ -70,6 +70,9 @@ const state = {
   },
   playback: {
     isPlaying: false,
+    starting: false,
+    startSeq: 0,
+    nextBarTime: 0,
     timeoutId: null
   },
   currentDecision: null,
@@ -175,31 +178,63 @@ function scheduleNextBar(delayMs = 0) {
   state.playback.timeoutId = setTimeout(() => {
     const profile = activeProfile();
     if (!profile || !state.playback.isPlaying) return;
-    updateCurrentBar();
     const context = audioEngine.ensure();
-    audioEngine.scheduleBar(state.currentBar, state.controlState.controls, context.currentTime + 0.05);
-    if (state.controlState.controls.midiEnabled) midiOutput.sendBar(state.currentBar, state.controlState.controls);
+    if (context.state !== "running") { stopPlayback(); return; }
+    // Anchor bars to the audio clock. Timer/render delays must not add up
+    // after each bar, and a stalled tab must not replay a burst of old bars.
+    if (state.playback.nextBarTime < context.currentTime - 0.12) {
+      state.playback.nextBarTime = context.currentTime + 0.08;
+    }
+    if (state.playback.nextBarTime > context.currentTime + 0.12) {
+      scheduleNextBar(50);
+      return;
+    }
+    updateCurrentBar();
+    audioEngine.scheduleBar(state.currentBar, state.controlState.controls, state.playback.nextBarTime);
+    if (state.controlState.controls.midiEnabled) {
+      const midiStartMs = window.performance.now() + Math.max(0, state.playback.nextBarTime - context.currentTime) * 1000;
+      midiOutput.sendBar(state.currentBar, state.controlState.controls, midiStartMs);
+    }
     renderAll(refs, state);
     state.memory = updatePhraseMemory(state.memory, state.currentDecision);
     const barDuration = 60 / state.controlState.controls.bpm * 4;
-    scheduleNextBar(barDuration * 1000);
+    state.playback.nextBarTime += barDuration;
+    scheduleNextBar(50);
   }, delayMs);
 }
 
 async function startPlayback() {
-  await audioEngine.resume();
-  state.playback.isPlaying = true;
-  scheduleNextBar(0);
-  render();
+  if (state.playback.isPlaying || state.playback.starting) return;
+  const seq = ++state.playback.startSeq;
+  state.playback.starting = true;
+  try {
+    const context = await audioEngine.resume();
+    if (seq !== state.playback.startSeq || context.state !== "running") return;
+    state.playback.nextBarTime = context.currentTime + 0.08;
+    state.playback.isPlaying = true;
+    scheduleNextBar(0);
+    render();
+  } catch (error) {
+    if (seq === state.playback.startSeq) stopPlayback();
+    console.warn("[Drum Floor] audio start failed", error);
+  } finally {
+    if (seq === state.playback.startSeq) state.playback.starting = false;
+  }
 }
 
 function stopPlayback() {
+  ++state.playback.startSeq;
+  state.playback.starting = false;
+  state.playback.nextBarTime = 0;
   clearPlaybackTimer();
   state.playback.isPlaying = false;
+  audioEngine.stop();
   render();
 }
 
 function panicStop() {
+  ++state.playback.startSeq;
+  state.playback.starting = false;
   clearPlaybackTimer();
   state.playback.isPlaying = false;
   audioEngine.panic();
@@ -207,6 +242,8 @@ function panicStop() {
 }
 
 function quietForPageLifecycle(reason) {
+  ++state.playback.startSeq;
+  state.playback.starting = false;
   clearPlaybackTimer();
   state.playback.isPlaying = false;
   state.bandFrame = audioInput.stop();

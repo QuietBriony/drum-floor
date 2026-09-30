@@ -17,6 +17,8 @@ export class AudioEngine {
     this.roomGain = null;
     this.bodyFilter = null;
     this.bodyGain = null;
+    this.noiseBuffers = new Map();
+    this.activeVoices = new Set();
   }
 
   ensure() {
@@ -76,6 +78,28 @@ export class AudioEngine {
     if (!this.audioContext || !this.master) return;
     this.master.gain.cancelScheduledValues(this.audioContext.currentTime);
     this.master.gain.setTargetAtTime(0.0001, this.audioContext.currentTime, 0.01);
+    this.stop();
+  }
+
+  trackVoice(source, nodes) {
+    const voice = { source, nodes };
+    this.activeVoices.add(voice);
+    source.onended = () => this.releaseVoice(voice);
+  }
+
+  releaseVoice(voice) {
+    this.activeVoices.delete(voice);
+    voice.source.onended = null;
+    for (const node of [voice.source, ...voice.nodes]) {
+      try { node.disconnect(); } catch (_error) {}
+    }
+  }
+
+  stop() {
+    for (const voice of Array.from(this.activeVoices)) {
+      try { voice.source.stop(); } catch (_error) {}
+      this.releaseVoice(voice);
+    }
   }
 
   // Deterministic-per-call but ever-advancing PRNG: each hit pulls a fresh value
@@ -110,24 +134,34 @@ export class AudioEngine {
   }
 
   connectVoice(node, roomAmount = 0, bodyAmount = 0) {
+    const sends = [];
     node.connect(this.master);
     if (this.roomDelay && roomAmount > 0) {
       const send = this.audioContext.createGain();
       send.gain.value = Math.min(0.24, Math.max(0, roomAmount));
       node.connect(send).connect(this.roomDelay);
+      sends.push(send);
     }
     if (this.bodyFilter && bodyAmount > 0) {
       const send = this.audioContext.createGain();
       send.gain.value = Math.min(0.14, Math.max(0, bodyAmount));
       node.connect(send).connect(this.bodyFilter);
+      sends.push(send);
     }
+    return sends;
   }
 
   noiseBuffer(duration) {
-    const length = Math.max(1, Math.floor(this.audioContext.sampleRate * duration));
+    // Reuse a few power-of-two noise buffers. Random start offsets preserve
+    // variation without generating tens of thousands of samples per hit.
+    const minimum = Math.max(1, Math.ceil(this.audioContext.sampleRate * duration));
+    const length = 2 ** Math.ceil(Math.log2(minimum));
+    if (this.noiseBuffers.has(length)) return this.noiseBuffers.get(length);
     const buffer = this.audioContext.createBuffer(1, length, this.audioContext.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < length; i += 1) data[i] = Math.random() * 2 - 1;
+    if (this.noiseBuffers.size >= 8) this.noiseBuffers.delete(this.noiseBuffers.keys().next().value);
+    this.noiseBuffers.set(length, buffer);
     return buffer;
   }
 
@@ -140,7 +174,8 @@ export class AudioEngine {
     filter.frequency.value = frequency;
     filter.Q.value = q;
     source.connect(filter).connect(gain).connect(destination);
-    source.start(time);
+    this.trackVoice(source, [filter, gain]);
+    source.start(time, Math.random() * Math.max(0, source.buffer.duration - duration - 0.06));
     source.stop(time + duration + 0.07);
   }
 
@@ -153,8 +188,9 @@ export class AudioEngine {
     filter.frequency.setValueAtTime(frequency, time);
     filter.Q.value = q;
     source.connect(filter).connect(gain);
-    this.connectVoice(gain, roomAmount, bodyAmount);
-    source.start(time);
+    const sends = this.connectVoice(gain, roomAmount, bodyAmount);
+    this.trackVoice(source, [filter, gain, ...sends]);
+    source.start(time, Math.random() * Math.max(0, source.buffer.duration - duration - 0.08));
     source.stop(time + duration + 0.08);
   }
 
@@ -165,7 +201,8 @@ export class AudioEngine {
     osc.frequency.setValueAtTime(frequency, time);
     osc.frequency.exponentialRampToValueAtTime(Math.max(40, frequency * 0.82), time + duration * 0.7);
     osc.connect(gain);
-    this.connectVoice(gain, roomAmount, bodyAmount);
+    const sends = this.connectVoice(gain, roomAmount, bodyAmount);
+    this.trackVoice(osc, [gain, ...sends]);
     osc.start(time);
     osc.stop(time + duration + 0.03);
   }
@@ -238,6 +275,7 @@ export class AudioEngine {
     osc.frequency.setValueAtTime(startFreq, time);
     osc.frequency.exponentialRampToValueAtTime(kit.kick.end, time + decay * 0.84);
     osc.connect(gain).connect(this.master);
+    this.trackVoice(osc, [gain]);
     osc.start(time);
     osc.stop(time + decay + 0.08);
     if (kit.kick.sub) {
@@ -250,6 +288,7 @@ export class AudioEngine {
       sub.frequency.setValueAtTime(42 * this.jitter(0.03), time);
       sub.frequency.exponentialRampToValueAtTime(34, time + decay);
       sub.connect(subGain).connect(this.master);
+      this.trackVoice(sub, [subGain]);
       sub.start(time);
       sub.stop(time + decay * 1.4);
     }
@@ -296,6 +335,7 @@ export class AudioEngine {
     // Harder hits push the shell pitch up a little; small per-hit detune on top.
     body.frequency.value = baseBody * (0.96 + accent * 0.08) * this.jitter(0.02);
     body.connect(gain).connect(this.master);
+    this.trackVoice(body, [gain]);
     body.start(time);
     body.stop(time + 0.11);
     if (rim && kit.snare.rim) this.noiseHit(time + 0.002, kit.snare.rim * velocity, "highpass", 2400 * this.jitter(0.03), 0.045, 1.4);
